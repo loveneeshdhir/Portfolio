@@ -1,0 +1,2007 @@
+#!/usr/bin/env python3
+"""Build the portfolio: type system, dark mode, mobile nav, progressive
+disclosure, print/resume stylesheet, accessibility pass.
+
+Two hosting targets need opposite treatment of images/fonts, so this script
+has two modes:
+
+  python3 build.py              -> index.html, real file references.
+                                    For GitHub Pages / any normal static host:
+                                    small HTML, cacheable images, clean diffs.
+
+  python3 build.py --standalone -> standalone.html, base64-embedded.
+                                    For the Artifact preview only, whose CSP
+                                    blocks all external requests, so sibling
+                                    image files never load there. This is the
+                                    file to hand to the Artifact publish tool,
+                                    never index.html.
+
+Both read the exact same asset files and the exact same TPL, so the two
+outputs always stay in sync automatically.
+"""
+import base64, os, sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+STANDALONE = '--standalone' in sys.argv
+OUTPUT = os.path.join(HERE, 'standalone.html' if STANDALONE else 'index.html')
+
+ASSETS = ['gallery-1-fil-bangalore.jpg', 'about-portrait.jpg', 'hero-headshot.jpg',
+          'gallery-2-proof-of-community.jpg', 'gallery-3-og-club.jpg',
+          'gallery-4-eth-vietnam.jpg', 'nav-avatar.jpg', 'favicon.png',
+          'font-archivo.woff2', 'font-mono.woff2']
+for a in ASSETS:
+    assert os.path.isfile(os.path.join(HERE, a)), 'missing asset: ' + a
+
+MIME = {'.jpg': 'image/jpeg', '.png': 'image/png', '.woff2': 'font/woff2'}
+
+def asset(fname):
+    if not STANDALONE:
+        return fname
+    ext = os.path.splitext(fname)[1]
+    with open(os.path.join(HERE, fname), 'rb') as f:
+        return 'data:%s;base64,' % MIME[ext] + base64.b64encode(f.read()).decode()
+
+HERO     = asset('gallery-1-fil-bangalore.jpg')
+PORTRAIT = asset('about-portrait.jpg')
+HEADSHOT = asset('hero-headshot.jpg')
+G1       = asset('gallery-2-proof-of-community.jpg')
+G2       = asset('gallery-3-og-club.jpg')
+G3       = asset('gallery-4-eth-vietnam.jpg')
+AVATAR   = asset('nav-avatar.jpg')
+FAVICON  = asset('favicon.png')
+F_SANS   = asset('font-archivo.woff2')
+F_MONO   = asset('font-mono.woff2')
+
+TPL = r'''<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Loveneesh Dhir | Community, Growth &amp; Partnerships</title>
+<meta name="description" content="Loveneesh Dhir builds community infrastructure, developer programs, and strategic partnerships for technology companies. 450,000 users in 72 hours. 140+ contributors across 25+ countries.">
+<meta name="author" content="Loveneesh Dhir">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#14110F" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Loveneesh Dhir | Community, Growth &amp; Partnerships">
+<meta property="og:description" content="Six years, four companies. 450,000 users in 72 hours. 140+ contributors across 25+ countries. One motion.">
+<meta property="og:type" content="profile">
+<link rel="icon" type="image/png" sizes="64x64" href="%%FAVICON%%">
+<link rel="apple-touch-icon" href="%%FAVICON%%">
+<script type="application/ld+json">
+{
+  "@context":"https://schema.org",
+  "@type":"Person",
+  "name":"Loveneesh Dhir",
+  "jobTitle":"Head of Community, Ecosystem & Growth",
+  "description":"Builds community infrastructure, developer programs, and strategic partnerships for technology companies.",
+  "email":"mailto:dhirloveneesh@gmail.com",
+  "address":{"@type":"PostalAddress","addressLocality":"Delhi","addressCountry":"IN"},
+  "knowsAbout":["Community Building","Ecosystem Growth","Go-to-Market Strategy","Business Development","Partnerships","Developer Programs","Community-Led Growth","User Acquisition"],
+  "sameAs":[
+    "https://www.linkedin.com/in/loveneeshdhir/",
+    "https://x.com/LoveneeshDhir",
+    "https://github.com/loveneeshdhir",
+    "https://t.me/loveneeshdhir"
+  ]
+}
+</script>
+<style>
+/* ============ FONTS ============ */
+@font-face{
+  font-family:'Archivo';
+  font-style:normal;
+  font-weight:400 800;
+  font-stretch:62% 125%;
+  src:url(%%F_SANS%%) format('woff2');
+}
+@font-face{
+  font-family:'JBMono';
+  font-style:normal;
+  font-weight:400 700;
+  src:url(%%F_MONO%%) format('woff2');
+}
+
+/* ============ TOKENS ============ */
+:root{
+  color-scheme:light;
+  --paper:#FFFFFF;
+  --paper-2:#FAF8F5;
+  --paper-3:#F1ECE4;
+  --line:#E5DFD6;
+  --line-2:#D2C9BC;
+  --ink:#16120F;
+  --ink-2:#342E29;
+  --ink-3:#6A605A;
+  --rust:#C0451A;
+  --rust-2:#9A3512;
+  --rust-wash:#FBF1EC;
+  --shadow-sm:0 1px 2px rgba(22,18,15,.05),0 2px 8px rgba(22,18,15,.04);
+  --shadow-md:0 4px 12px rgba(22,18,15,.07),0 12px 32px rgba(22,18,15,.06);
+  --shadow-lg:0 8px 24px rgba(22,18,15,.09),0 24px 56px rgba(22,18,15,.08);
+
+  /* contrast band: dark panel that stays dark in both themes */
+  --band:#16120F;
+  --band-2:#221C17;
+  --band-ink:#FAF7F2;
+  --band-ink-2:rgba(250,247,242,.72);
+  --band-line:rgba(250,247,242,.12);
+  --band-accent:#F0703C;
+
+  --f-sans:'Archivo',system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;
+  --f-mono:'JBMono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  --sel-ink:#FFFFFF;
+  --nav-bg:rgba(255,255,255,.82);
+
+  /* type scale */
+  --t-2xs:.6875rem;
+  --t-xs:.75rem;
+  --t-sm:.8125rem;
+  --t-md:.9375rem;
+  --t-base:1rem;
+  --t-lg:1.0625rem;
+  --t-xl:clamp(1.125rem,1.6vw,1.3125rem);
+  --t-2xl:clamp(1.375rem,2.4vw,1.75rem);
+  --t-3xl:clamp(1.875rem,3.6vw,2.75rem);
+  --t-4xl:clamp(2.5rem,5.5vw,4rem);
+  --t-hero:clamp(3.1rem,8.4vw,7.5rem);
+
+  /* space scale */
+  --s1:.25rem; --s2:.5rem; --s3:.75rem; --s4:1rem; --s5:1.5rem;
+  --s6:2rem; --s7:2.5rem; --s8:3rem; --s9:4rem; --s10:5rem;
+  --s11:6.5rem; --s12:8rem;
+
+  --r-xs:4px; --r-sm:6px; --r:10px; --r-lg:14px; --r-full:999px;
+  --w:1080px;
+  --nav-h:60px;
+  --ease:cubic-bezier(.22,.61,.36,1);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    color-scheme:dark;
+    --paper:#14110F;
+    --paper-2:#1B1714;
+    --paper-3:#251F1A;
+    --line:#2C2621;
+    --line-2:#3D352E;
+    --ink:#F7F3EC;
+    --ink-2:#D8D0C7;
+    --ink-3:#9A9089;
+    --rust:#F0703C;
+    --rust-2:#F5936A;
+    --rust-wash:#251912;
+    --shadow-sm:0 1px 2px rgba(0,0,0,.4);
+    --shadow-md:0 4px 12px rgba(0,0,0,.45),0 12px 32px rgba(0,0,0,.35);
+    --shadow-lg:0 8px 24px rgba(0,0,0,.5),0 24px 56px rgba(0,0,0,.4);
+    --band:#0D0B09;
+    --band-2:#171310;
+    --sel-ink:#14110F;
+    --nav-bg:rgba(20,17,15,.82);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --paper:#14110F; --paper-2:#1B1714; --paper-3:#251F1A;
+  --line:#2C2621; --line-2:#3D352E;
+  --ink:#F7F3EC; --ink-2:#D8D0C7; --ink-3:#9A9089;
+  --rust:#F0703C; --rust-2:#F5936A; --rust-wash:#251912;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.4);
+  --shadow-md:0 4px 12px rgba(0,0,0,.45),0 12px 32px rgba(0,0,0,.35);
+  --shadow-lg:0 8px 24px rgba(0,0,0,.5),0 24px 56px rgba(0,0,0,.4);
+  --band:#0D0B09; --band-2:#171310;
+  --sel-ink:#14110F; --nav-bg:rgba(20,17,15,.82);
+}
+:root[data-theme="light"]{
+  color-scheme:light;
+  --paper:#FFFFFF; --paper-2:#FAF8F5; --paper-3:#F1ECE4;
+  --line:#E5DFD6; --line-2:#D2C9BC;
+  --ink:#16120F; --ink-2:#342E29; --ink-3:#6A605A;
+  --rust:#C0451A; --rust-2:#9A3512; --rust-wash:#FBF1EC;
+  --shadow-sm:0 1px 2px rgba(22,18,15,.05),0 2px 8px rgba(22,18,15,.04);
+  --shadow-md:0 4px 12px rgba(22,18,15,.07),0 12px 32px rgba(22,18,15,.06);
+  --shadow-lg:0 8px 24px rgba(22,18,15,.09),0 24px 56px rgba(22,18,15,.08);
+  --band:#16120F; --band-2:#221C17;
+  --sel-ink:#FFFFFF; --nav-bg:rgba(255,255,255,.82);
+}
+
+/* ============ RESET ============ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+/* the UA's [hidden]{display:none} loses to any author display rule, so the
+   experience rows (display:grid) ignored their hidden attribute entirely */
+[hidden]{display:none!important}
+html{scroll-behavior:smooth;scroll-padding-top:calc(var(--nav-h) + 1rem);-webkit-text-size-adjust:100%}
+body{
+  background:var(--paper);color:var(--ink-2);
+  font-family:var(--f-sans);font-size:var(--t-base);
+  font-weight:400;font-stretch:100%;line-height:1.65;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  text-rendering:optimizeLegibility;
+  overflow-x:hidden;
+}
+body.menu-open{overflow:hidden}
+img{display:block;max-width:100%}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+ul{list-style:none}
+h1,h2,h3,h4{font-weight:700;line-height:1.15;color:var(--ink);text-wrap:balance}
+::selection{background:var(--rust);color:var(--sel-ink)}
+main:focus{outline:none}
+
+/* focus */
+:focus-visible{
+  outline:2px solid var(--rust);
+  outline-offset:3px;
+  border-radius:var(--r-xs);
+}
+.sr-only{
+  position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;
+}
+.skip{
+  position:fixed;top:0;left:0;z-index:400;
+  transform:translateY(-110%);
+  background:var(--ink);color:var(--paper);
+  padding:.85rem 1.4rem;font-size:var(--t-sm);font-weight:700;
+  border-radius:0 0 var(--r) 0;
+  transition:transform .2s var(--ease);
+}
+.skip:focus{transform:none}
+
+/* ============ TYPE ROLES ============ */
+.label{
+  font-family:var(--f-sans);
+  font-size:var(--t-xs);font-weight:700;font-stretch:84%;
+  letter-spacing:.15em;text-transform:uppercase;
+  color:var(--rust-2);
+}
+.display{font-weight:800;font-stretch:110%;letter-spacing:-.035em;line-height:1.02}
+.data{font-weight:800;font-stretch:96%;letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+
+/* ============ LAYOUT ============ */
+.wrap{max-width:calc(var(--w) + 5rem);margin:0 auto;padding:0 2.5rem}
+.section{padding:var(--s11) 0;border-top:1px solid var(--line)}
+.sec-head{max-width:62ch;margin-bottom:var(--s8)}
+.sec-head .label{
+  display:flex;align-items:center;gap:.7rem;margin-bottom:var(--s3);
+}
+.sec-head .label::after{
+  content:'';height:1px;flex:1;max-width:60px;
+  background:linear-gradient(to right,var(--rust),transparent);
+}
+.sec-h{font-size:var(--t-3xl);font-weight:800;font-stretch:106%;letter-spacing:-.032em;line-height:1.08}
+.sec-sub{
+  font-size:var(--t-lg);color:var(--ink-3);line-height:1.7;
+  max-width:56ch;margin-top:var(--s4);text-wrap:pretty;
+}
+
+/* ============ NAV ============ */
+#nav{
+  position:fixed;inset:0 0 auto 0;z-index:200;
+  height:var(--nav-h);
+  display:flex;align-items:center;gap:1rem;
+  padding:0 max(1.25rem,2.5vw);
+  background:var(--paper);
+  background:var(--nav-bg);
+  backdrop-filter:saturate(180%) blur(20px);
+  -webkit-backdrop-filter:saturate(180%) blur(20px);
+  border-bottom:1px solid transparent;
+  transition:border-color .3s,background .3s;
+}
+body.scrolled #nav{border-bottom-color:var(--line)}
+#progress{
+  position:absolute;left:0;bottom:-1px;height:2px;width:100%;
+  background:var(--rust);transform:scaleX(0);transform-origin:0 50%;
+  will-change:transform;
+}
+.nav-id{
+  display:flex;align-items:center;gap:.55rem;
+  min-height:44px;padding-right:.5rem;
+  font-size:var(--t-sm);font-weight:700;font-stretch:88%;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--ink);
+  margin-right:auto;flex-shrink:0;
+}
+.nav-mark{
+  width:28px;height:28px;border-radius:50%;
+  object-fit:cover;flex-shrink:0;
+  box-shadow:0 0 0 1px var(--line-2),0 0 0 3px var(--paper);
+  transition:box-shadow .2s;
+}
+.nav-id:hover .nav-mark{box-shadow:0 0 0 1px var(--rust),0 0 0 3px var(--paper)}
+.nav-links{display:flex;gap:.25rem;align-items:center}
+.nav-links a{
+  position:relative;
+  display:block;padding:.55rem .8rem;
+  font-size:var(--t-sm);font-weight:500;color:var(--ink-3);
+  border-radius:var(--r-sm);
+  transition:color .2s,background .2s;
+}
+.nav-links a:hover{color:var(--ink);background:var(--paper-3)}
+.nav-links a[aria-current="true"]{color:var(--ink);font-weight:700}
+.nav-links a[aria-current="true"]::after{
+  content:'';position:absolute;left:.8rem;right:.8rem;bottom:.28rem;
+  height:2px;border-radius:2px;background:var(--rust);
+}
+.nav-act{display:flex;align-items:center;gap:.5rem;flex-shrink:0}
+.nav-ghost{
+  display:inline-flex;align-items:center;gap:.35rem;
+  padding:.5rem .85rem;
+  font-size:var(--t-xs);font-weight:600;color:var(--ink-2);
+  border:1px solid var(--line-2);border-radius:var(--r-sm);
+  transition:border-color .2s,color .2s,background .2s;
+}
+.nav-ghost:hover{border-color:var(--ink-3);background:var(--paper-2);color:var(--ink)}
+.nav-cta{
+  display:inline-flex;align-items:center;gap:.4rem;
+  min-height:40px;padding:.55rem 1rem;
+  background:var(--ink);color:var(--paper);
+  font-size:var(--t-xs);font-weight:700;letter-spacing:.02em;
+  border-radius:var(--r-sm);
+  transition:background .2s,transform .18s var(--ease);
+}
+.nav-cta:hover{background:var(--rust);color:#fff;transform:translateY(-1px)}
+.nav-toggle{
+  display:none;
+  width:44px;height:44px;margin-right:-.5rem;
+  align-items:center;justify-content:center;
+  border-radius:var(--r-sm);color:var(--ink);
+}
+.nav-toggle:hover{background:var(--paper-3)}
+.nav-toggle span{
+  display:block;width:19px;height:1.5px;background:currentColor;border-radius:2px;
+  position:relative;transition:transform .28s var(--ease),background .2s;
+}
+.nav-toggle span::before,.nav-toggle span::after{
+  content:'';position:absolute;left:0;width:19px;height:1.5px;
+  background:currentColor;border-radius:2px;
+  transition:transform .28s var(--ease),top .2s;
+}
+.nav-toggle span::before{top:-6px}
+.nav-toggle span::after{top:6px}
+body.menu-open .nav-toggle span{background:transparent}
+body.menu-open .nav-toggle span::before{top:0;transform:rotate(45deg)}
+body.menu-open .nav-toggle span::after{top:0;transform:rotate(-45deg)}
+
+/* MOBILE MENU */
+#menu{
+  position:fixed;inset:var(--nav-h) 0 0 0;z-index:190;
+  background:var(--paper);
+  padding:var(--s6) max(1.25rem,2.5vw) var(--s8);
+  display:flex;flex-direction:column;
+  opacity:0;visibility:hidden;transform:translateY(-8px);
+  transition:opacity .26s var(--ease),transform .26s var(--ease),visibility .26s;
+  overflow-y:auto;
+}
+body.menu-open #menu{opacity:1;visibility:visible;transform:none}
+#menu ul{display:flex;flex-direction:column}
+#menu li{border-bottom:1px solid var(--line)}
+#menu a.m-link{
+  display:flex;align-items:baseline;gap:.9rem;
+  padding:1.15rem .25rem;
+  font-size:1.4rem;font-weight:700;font-stretch:104%;
+  letter-spacing:-.02em;color:var(--ink);
+}
+#menu a.m-link .m-i{
+  font-family:var(--f-mono);font-size:var(--t-2xs);
+  color:var(--rust-2);font-weight:600;
+}
+.menu-foot{margin-top:auto;padding-top:var(--s6);display:grid;gap:.6rem}
+.menu-foot .btn{justify-content:center;width:100%}
+
+/* ============ BUTTONS ============ */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:.45rem;
+  min-height:46px;padding:.75rem 1.5rem;
+  font-size:var(--t-md);font-weight:700;letter-spacing:-.005em;
+  border-radius:var(--r-sm);
+  transition:background .2s,color .2s,border-color .2s,transform .18s var(--ease),box-shadow .2s;
+}
+.btn-primary{background:var(--ink);color:var(--paper);box-shadow:var(--shadow-sm)}
+.btn-primary:hover{background:var(--rust);color:#fff;transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.btn-secondary{border:1px solid var(--line-2);color:var(--ink-2);background:var(--paper)}
+.btn-secondary:hover{border-color:var(--ink-3);color:var(--ink);background:var(--paper-2);transform:translateY(-2px)}
+.btn .ar{transition:transform .22s var(--ease)}
+.btn:hover .ar{transform:translateX(3px)}
+
+/* ============ HERO ============ */
+#hero{
+  display:grid;grid-template-columns:minmax(0,58fr) minmax(0,42fr);
+  min-height:100svh;
+  border-bottom:1px solid var(--line);
+}
+.hero-l{
+  position:relative;
+  display:flex;flex-direction:column;justify-content:center;
+  padding:calc(var(--nav-h) + var(--s9)) var(--s7) var(--s9) max(2rem,6vw);
+  overflow:hidden;
+}
+.hero-l::before{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+  background-image:radial-gradient(circle,color-mix(in srgb,var(--rust) 11%,transparent) 1px,transparent 1px);
+  background-size:26px 26px;
+  -webkit-mask-image:radial-gradient(ellipse 80% 70% at 20% 40%,#000,transparent 75%);
+  mask-image:radial-gradient(ellipse 80% 70% at 20% 40%,#000,transparent 75%);
+}
+.hero-l>*{position:relative;z-index:1}
+
+.dot{
+  width:7px;height:7px;border-radius:50%;
+  background:#18A957;flex-shrink:0;
+  box-shadow:0 0 0 0 rgba(24,169,87,.55);
+  animation:pulse 2.4s infinite;
+}
+@keyframes pulse{
+  0%{box-shadow:0 0 0 0 rgba(24,169,87,.5)}
+  70%{box-shadow:0 0 0 7px rgba(24,169,87,0)}
+  100%{box-shadow:0 0 0 0 rgba(24,169,87,0)}
+}
+.hero-name{
+  font-size:var(--t-hero);font-weight:800;font-stretch:112%;
+  letter-spacing:-.045em;line-height:.88;color:var(--ink);
+  opacity:0;animation:rise .8s .05s var(--ease) forwards;
+}
+.hero-title{
+  display:flex;align-items:center;gap:.85rem;
+  margin:var(--s5) 0 var(--s5);
+  opacity:0;animation:rise .7s .17s var(--ease) forwards;
+}
+.hero-title::before{
+  content:'';width:34px;height:3px;border-radius:2px;
+  background:var(--rust);flex-shrink:0;
+}
+.hero-title span{
+  font-size:var(--t-xl);font-weight:700;font-stretch:92%;
+  letter-spacing:-.008em;color:var(--ink);line-height:1.25;
+}
+.hero-thesis{
+  font-size:clamp(1rem,1.35vw,1.1875rem);
+  color:var(--ink-2);line-height:1.62;max-width:46ch;
+  margin-bottom:var(--s4);text-wrap:pretty;
+  opacity:0;animation:rise .7s .29s var(--ease) forwards;
+}
+.hero-thesis strong{color:var(--ink);font-weight:700}
+.hero-proof{
+  font-size:var(--t-md);color:var(--ink-3);line-height:1.75;
+  max-width:48ch;margin-bottom:var(--s6);text-wrap:pretty;
+  opacity:0;animation:rise .7s .39s var(--ease) forwards;
+}
+.hero-proof b{color:var(--ink-2);font-weight:700}
+.hero-btns{
+  display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:var(--s7);
+  opacity:0;animation:rise .7s .49s var(--ease) forwards;
+}
+.hero-logos{
+  opacity:0;animation:rise .7s .61s var(--ease) forwards;
+}
+.hero-logos-l{
+  font-size:var(--t-2xs);font-weight:700;font-stretch:84%;
+  letter-spacing:.15em;text-transform:uppercase;color:var(--ink-3);
+  margin-bottom:.7rem;
+}
+.hero-logos-r{
+  display:flex;flex-wrap:wrap;gap:.4rem .9rem;
+  font-size:var(--t-sm);font-weight:700;font-stretch:90%;
+  color:var(--ink-2);
+}
+.hero-logos-r span{display:inline-flex;align-items:center;gap:.9rem}
+.hero-logos-r span:not(:last-child)::after{
+  content:'';width:3px;height:3px;border-radius:50%;background:var(--line-2);
+}
+.hero-r{position:relative;overflow:hidden;background:var(--paper-2)}
+.hero-r img{
+  position:absolute;inset:0;width:100%;height:100%;
+  object-fit:cover;object-position:center 18%;
+}
+.hero-r::before{
+  content:'';position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:linear-gradient(to top,var(--paper) 0%,transparent 22%);
+}
+.hero-r::after{
+  content:'';position:absolute;top:0;bottom:0;left:0;width:2px;z-index:2;
+  background:linear-gradient(to bottom,transparent,var(--rust) 30%,var(--rust) 70%,transparent);
+  opacity:.75;
+}
+/* ============ STATS BAND ============ */
+#stats{
+  background:var(--band);
+  display:grid;grid-template-columns:repeat(4,1fr);
+}
+.stat-item{
+  padding:var(--s8) var(--s4);text-align:center;
+  border-right:1px solid var(--band-line);
+  transition:background .3s;
+}
+.stat-item:last-child{border-right:none}
+.stat-item:hover{background:rgba(255,255,255,.035)}
+.stat-n{
+  display:block;
+  font-size:clamp(2.1rem,3.9vw,3.1rem);
+  font-weight:800;font-stretch:98%;letter-spacing:-.035em;
+  line-height:1;color:var(--band-accent);
+  font-variant-numeric:tabular-nums;
+  margin-bottom:.65rem;
+}
+.stat-l{
+  font-size:var(--t-xs);font-weight:600;font-stretch:88%;
+  letter-spacing:.06em;color:var(--band-ink-2);line-height:1.55;
+}
+/* names the company behind each number so a recruiter can verify it against
+   the experience section instead of taking a bare figure on trust */
+.stat-src{
+  display:inline-block;margin-top:.9rem;padding-top:.75rem;
+  border-top:1px solid var(--band-line);
+  font-size:var(--t-2xs);font-weight:700;font-stretch:82%;
+  letter-spacing:.15em;text-transform:uppercase;color:var(--band-accent);
+}
+
+/* ============ GALLERY ============ */
+#gallery{display:grid;grid-template-columns:2.1fr 1fr 1fr 1fr;background:var(--line)}
+.g-item{position:relative;overflow:hidden;background:var(--paper-3)}
+.g-item::before{content:'';display:block;padding-bottom:70%}
+.g-item:not(:first-child){margin-left:1px}
+.g-item img{
+  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+  transition:transform .7s var(--ease),filter .5s;
+}
+.g-item:hover img{transform:scale(1.055)}
+.g-cap{
+  position:absolute;inset:auto 0 0 0;z-index:1;
+  padding:1.6rem .9rem .75rem;
+  background:linear-gradient(transparent,rgba(10,8,6,.82));
+  color:#fff;
+  font-size:var(--t-2xs);font-weight:700;font-stretch:86%;
+  letter-spacing:.11em;text-transform:uppercase;
+  transform:translateY(2px);opacity:.92;
+  transition:transform .35s var(--ease),opacity .35s;
+}
+.g-item:hover .g-cap{transform:none;opacity:1}
+
+/* ============ SELECTED WORK ============ */
+#work{background:var(--paper-2);border-top:1px solid var(--line)}
+.work-list{display:flex;flex-direction:column;margin-top:var(--s7)}
+.work-row{
+  display:grid;grid-template-columns:200px minmax(0,1fr);gap:var(--s8);
+  padding:var(--s8) 0;
+  border-top:1px solid var(--line);
+  transition:border-top-color .35s;
+}
+.work-row:hover{border-top-color:var(--rust)}
+.w-metric{position:sticky;top:calc(var(--nav-h) + 2rem);align-self:start}
+.w-n{
+  font-size:clamp(2.75rem,5.2vw,4.5rem);font-weight:800;font-stretch:96%;
+  letter-spacing:-.045em;line-height:.95;color:var(--ink);
+  font-variant-numeric:tabular-nums;
+  transition:color .35s;
+}
+.work-row:hover .w-n{color:var(--rust)}
+.w-unit{
+  font-size:var(--t-xs);font-weight:700;font-stretch:86%;
+  letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3);
+  margin-top:.5rem;line-height:1.5;
+}
+.w-tag{
+  display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;
+  font-size:var(--t-xs);font-weight:700;font-stretch:86%;
+  letter-spacing:.11em;text-transform:uppercase;color:var(--rust-2);
+  margin-bottom:.7rem;
+}
+.w-tag .sep{width:3px;height:3px;border-radius:50%;background:var(--line-2)}
+.w-tag a{border-bottom:1px solid transparent;transition:border-color .18s}
+.w-tag a:hover{border-color:currentColor}
+.w-title{
+  font-size:var(--t-2xl);font-weight:700;font-stretch:104%;
+  letter-spacing:-.026em;line-height:1.2;color:var(--ink);
+  margin-bottom:var(--s3);
+}
+.w-body{font-size:var(--t-lg);color:var(--ink-2);line-height:1.72;max-width:58ch;text-wrap:pretty}
+
+/* ============ APPROACH ============ */
+.cap-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:1px;
+  background:var(--line);border:1px solid var(--line);
+  border-radius:var(--r-lg);overflow:hidden;
+}
+.cap-card{
+  position:relative;
+  padding:var(--s7) var(--s6) var(--s7);
+  background:var(--paper);
+  transition:background .28s;
+}
+.cap-card::before{
+  content:'';position:absolute;inset:0 0 auto 0;height:3px;
+  background:var(--rust);transform:scaleX(0);transform-origin:0 50%;
+  transition:transform .35s var(--ease);
+}
+.cap-card:hover{background:var(--paper-2)}
+.cap-card:hover::before{transform:none}
+.cap-i{
+  display:inline-block;
+  font-family:var(--f-mono);font-size:var(--t-2xs);font-weight:700;
+  letter-spacing:.1em;color:var(--rust-2);
+  padding:.25rem .5rem;background:var(--rust-wash);
+  border-radius:var(--r-xs);margin-bottom:var(--s4);
+}
+.cap-title{
+  font-size:var(--t-xl);font-weight:700;font-stretch:102%;
+  letter-spacing:-.022em;color:var(--ink);margin-bottom:.4rem;line-height:1.25;
+}
+.cap-kicker{
+  font-size:var(--t-sm);font-weight:700;font-stretch:88%;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);
+  margin-bottom:var(--s4);
+}
+.cap-body{font-size:var(--t-md);color:var(--ink-2);line-height:1.75;text-wrap:pretty}
+
+/* ============ SKILLS ============ */
+#skills{background:var(--paper-2)}
+.skills-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:1px;
+  background:var(--line);border:1px solid var(--line);
+  border-radius:var(--r-lg);overflow:hidden;
+}
+.sk-group{background:var(--paper);padding:var(--s5) var(--s5) var(--s6)}
+.sk-label{
+  font-size:var(--t-xs);font-weight:700;font-stretch:84%;
+  letter-spacing:.13em;text-transform:uppercase;color:var(--rust-2);
+  margin-bottom:var(--s4);line-height:1.5;
+  padding-bottom:.7rem;border-bottom:1px solid var(--line);
+}
+.sk-pills{display:flex;flex-wrap:wrap;gap:.35rem}
+.sk-pill{
+  font-size:var(--t-sm);font-weight:500;color:var(--ink-2);
+  padding:.33rem .68rem;
+  background:var(--paper-2);border:1px solid var(--line);
+  border-radius:var(--r-full);line-height:1.45;
+  transition:border-color .18s,color .18s,background .18s;
+}
+.sk-pill:hover{color:var(--rust-2);border-color:color-mix(in srgb,var(--rust) 40%,transparent);background:var(--rust-wash)}
+
+/* ============ ABOUT ============ */
+.about-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:var(--s10);align-items:start}
+.about-copy p{
+  font-size:var(--t-lg);color:var(--ink-2);line-height:1.82;
+  margin-bottom:var(--s5);max-width:64ch;text-wrap:pretty;
+}
+.about-copy p:first-of-type{
+  font-size:clamp(1.125rem,1.6vw,1.3125rem);
+  color:var(--ink);font-weight:500;line-height:1.62;
+}
+.about-copy strong{color:var(--ink);font-weight:700}
+.about-aside{position:sticky;top:calc(var(--nav-h) + 2rem)}
+/* Source photo is a circular crop with white corners baked into the JPEG,
+   so the portrait is clipped to a circle: border-radius:50% on a square box
+   removes exactly those corners. The slight scale hides the JPEG edge fringe. */
+.portrait{
+  position:relative;width:min(200px,60%);aspect-ratio:1/1;
+  border-radius:50%;overflow:hidden;
+  box-shadow:0 0 0 1px var(--line),0 0 0 7px var(--paper-2),0 0 0 8px var(--line);
+  margin:0 auto var(--s6);
+}
+.portrait img{width:100%;height:100%;object-fit:cover;object-position:center;transform:scale(1.04)}
+.aside-stats{
+  border:1px solid var(--line);border-radius:var(--r-lg);
+  overflow:hidden;background:var(--paper);
+}
+.a-stat{
+  display:flex;justify-content:space-between;align-items:baseline;gap:1rem;
+  padding:.85rem 1.15rem;border-bottom:1px solid var(--line);
+  transition:background .2s;
+}
+.a-stat:last-child{border-bottom:none}
+.a-stat:hover{background:var(--paper-2)}
+.a-label{font-size:var(--t-sm);color:var(--ink-3);line-height:1.4}
+.a-val{
+  font-size:var(--t-lg);font-weight:800;font-stretch:96%;color:var(--rust);
+  letter-spacing:-.025em;font-variant-numeric:tabular-nums;flex-shrink:0;
+}
+
+/* ============ QUOTE ============ */
+#qb{
+  background:var(--band);
+  background-image:radial-gradient(ellipse 70% 90% at 50% 118%,var(--band-2),transparent);
+  padding:var(--s12) 2.5rem;text-align:center;
+}
+.qb-inner{max-width:720px;margin:0 auto}
+.qb-mark{
+  display:block;width:26px;height:2px;border-radius:2px;
+  background:var(--band-accent);margin:0 auto var(--s6);
+}
+.qb-q{
+  font-size:clamp(1.5rem,3.4vw,2.4rem);
+  font-weight:700;font-stretch:106%;letter-spacing:-.032em;
+  line-height:1.24;color:var(--band-ink);margin-bottom:var(--s5);
+  text-wrap:balance;
+}
+.qb-by{
+  font-size:var(--t-xs);font-weight:700;font-stretch:86%;
+  letter-spacing:.18em;text-transform:uppercase;color:var(--band-ink-2);
+}
+
+/* ============ EXPERIENCE ============ */
+.exp-list{display:flex;flex-direction:column;margin-top:var(--s7)}
+.exp-row{
+  display:grid;grid-template-columns:210px minmax(0,1fr);gap:var(--s8);
+  padding:var(--s8) 0;border-top:1px solid var(--line);
+  transition:border-top-color .35s;
+}
+.exp-row:hover{border-top-color:var(--rust)}
+.ex-date{
+  font-family:var(--f-mono);font-size:var(--t-2xs);font-weight:500;
+  letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);
+  margin-bottom:.8rem;
+}
+.ex-now{
+  display:inline-flex;align-items:center;gap:.35rem;
+  color:var(--rust-2);font-weight:700;
+}
+.ex-now::before{content:'';width:5px;height:5px;border-radius:50%;background:#18A957}
+.ex-co{
+  font-size:var(--t-lg);font-weight:700;font-stretch:100%;
+  letter-spacing:-.018em;color:var(--ink);margin-bottom:.35rem;line-height:1.3;
+}
+.ex-co a{border-bottom:1px solid transparent;transition:color .2s,border-color .2s}
+.ex-co a:hover{color:var(--rust);border-color:color-mix(in srgb,var(--rust) 40%,transparent)}
+.ex-co-sub{font-size:var(--t-sm);color:var(--ink-3);line-height:1.6}
+.ex-role{
+  font-size:var(--t-xl);font-weight:700;font-stretch:102%;
+  letter-spacing:-.022em;color:var(--ink);margin-bottom:var(--s3);
+}
+.ex-context{font-size:var(--t-md);color:var(--ink-2);line-height:1.78;margin-bottom:var(--s5);max-width:60ch;text-wrap:pretty}
+.ex-context strong{color:var(--ink);font-weight:700}
+/* Separators are drawn as item borders pulled onto the container edge with a
+   -1px margin, not by a gap revealing the container colour. With 3 metrics in a
+   2-column layout the leftover cell then matches the cards instead of showing
+   a stray coloured block. */
+.ex-nums{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+  background:var(--paper-2);
+  border:1px solid var(--line);border-radius:var(--r);
+  overflow:hidden;margin-bottom:var(--s5);
+}
+.ex-num{
+  background:var(--paper-2);padding:.9rem 1.05rem;
+  border-left:1px solid var(--line);border-top:1px solid var(--line);
+  margin:-1px 0 0 -1px;
+}
+.ex-num-n{
+  font-size:1.4rem;font-weight:800;font-stretch:96%;color:var(--rust);
+  letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums;
+}
+.ex-num-l{
+  font-size:var(--t-2xs);font-weight:600;font-stretch:88%;
+  letter-spacing:.07em;color:var(--ink-3);margin-top:.35rem;line-height:1.4;
+}
+.ex-bul{display:flex;flex-direction:column;gap:.6rem}
+.ex-bul li{
+  font-size:var(--t-md);color:var(--ink-2);line-height:1.75;
+  padding-left:1.15rem;position:relative;text-wrap:pretty;
+}
+.ex-bul li::before{
+  content:'';position:absolute;left:0;top:.68em;
+  width:5px;height:1.5px;border-radius:1px;background:var(--rust);
+}
+.ln{
+  color:var(--rust);
+  border-bottom:1px solid color-mix(in srgb,var(--rust) 30%,transparent);
+  transition:border-color .15s,color .15s;
+}
+.ln:hover{border-color:var(--rust)}
+.exp-more{display:flex;justify-content:center;padding-top:var(--s7);border-top:1px solid var(--line)}
+.more-btn{
+  display:inline-flex;align-items:center;gap:.55rem;
+  min-height:46px;padding:.7rem 1.5rem;
+  font-size:var(--t-md);font-weight:700;color:var(--ink-2);
+  border:1px solid var(--line-2);border-radius:var(--r-full);
+  background:var(--paper);
+  transition:border-color .2s,color .2s,background .2s;
+}
+.more-btn:hover{border-color:var(--rust);color:var(--rust);background:var(--rust-wash)}
+.more-btn .chev{transition:transform .28s var(--ease)}
+.more-btn[aria-expanded="true"] .chev{transform:rotate(180deg)}
+
+/* ============ VOLUNTEERING ============ */
+#vol{background:var(--paper-2)}
+.vol-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem}
+.vol-card{
+  padding:var(--s5);background:var(--paper);
+  border:1px solid var(--line);border-radius:var(--r-lg);
+  transition:border-color .22s,box-shadow .22s,transform .22s var(--ease);
+}
+.vol-card:hover{
+  border-color:color-mix(in srgb,var(--rust) 45%,transparent);
+  box-shadow:var(--shadow-md);transform:translateY(-3px);
+}
+.vol-org{
+  font-size:var(--t-xs);font-weight:700;font-stretch:84%;
+  letter-spacing:.13em;text-transform:uppercase;color:var(--rust-2);
+  margin-bottom:.6rem;
+}
+.vol-org a{border-bottom:1px solid transparent;transition:border-color .2s}
+.vol-org a:hover{border-color:currentColor}
+.vol-role{font-size:var(--t-md);font-weight:700;color:var(--ink);margin-bottom:.4rem;line-height:1.4}
+.vol-role a{border-bottom:1px solid transparent;transition:border-color .2s}
+.vol-role a:hover{border-color:var(--rust)}
+.vol-yr{font-family:var(--f-mono);font-size:var(--t-2xs);color:var(--ink-3);letter-spacing:.05em}
+.vol-note{
+  font-size:var(--t-sm);color:var(--ink-2);line-height:1.6;
+  margin-top:.7rem;padding-top:.7rem;border-top:1px solid var(--line);
+}
+
+/* ============ EDUCATION ============ */
+#edu{border-top:1px solid var(--line)}
+.edu-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem}
+
+/* ============ REFERENCES ============ */
+#praise{background:var(--paper)}
+.praise-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1.25rem}
+.praise-card{
+  display:flex;flex-direction:column;
+  padding:var(--s6);background:var(--paper);
+  border:1px solid var(--line);border-radius:var(--r-lg);
+  transition:border-color .22s,box-shadow .22s,transform .22s var(--ease);
+}
+.praise-card:hover{
+  border-color:color-mix(in srgb,var(--rust) 45%,transparent);
+  box-shadow:var(--shadow-md);transform:translateY(-3px);
+}
+.pq{
+  position:relative;flex:1;
+  font-size:var(--t-lg);line-height:1.72;color:var(--ink-2);
+  text-wrap:pretty;margin-bottom:var(--s5);
+}
+.pq::before{
+  content:'';display:block;width:22px;height:2px;border-radius:2px;
+  background:var(--rust);margin-bottom:var(--s4);
+}
+.pa{display:flex;align-items:flex-start;gap:.85rem}
+.pa-mark{
+  flex-shrink:0;width:40px;height:40px;border-radius:50%;
+  display:grid;place-items:center;
+  background:var(--rust-wash);color:var(--rust-2);margin-top:2px;
+  font-size:var(--t-xs);font-weight:800;font-stretch:92%;letter-spacing:.02em;
+  border:1px solid color-mix(in srgb,var(--rust) 22%,transparent);
+}
+.pa-meta{display:flex;flex-direction:column;gap:.1rem;min-width:0}
+.pa-name{font-size:var(--t-md);font-weight:700;color:var(--ink);line-height:1.3}
+.pa-role{font-size:var(--t-sm);color:var(--ink-3);line-height:1.4}
+.praise-more{display:flex;justify-content:center;margin-top:var(--s6)}
+.pa-rel{
+  font-size:var(--t-2xs);font-weight:700;font-stretch:84%;
+  letter-spacing:.11em;text-transform:uppercase;color:var(--rust-2);margin-top:.2rem;
+}
+
+/* ============ CONTACT ============ */
+#contact{
+  background:var(--band);
+  background-image:radial-gradient(ellipse 60% 80% at 50% 0%,var(--band-2),transparent);
+  padding:var(--s12) 2.5rem;
+  border-top:1px solid var(--line);
+}
+.ct-inner{max-width:640px;margin:0 auto;text-align:center}
+.ct-label{
+  display:inline-flex;align-items:center;gap:.5rem;
+  padding:.4rem .85rem;border:1px solid var(--band-line);
+  border-radius:var(--r-full);
+  font-size:var(--t-xs);font-weight:600;color:var(--band-ink-2);
+  margin-bottom:var(--s5);
+}
+.ct-h{
+  font-size:var(--t-4xl);font-weight:800;font-stretch:110%;
+  letter-spacing:-.042em;line-height:1.02;color:var(--band-ink);
+  margin-bottom:var(--s4);
+}
+.ct-sub{
+  font-size:var(--t-lg);color:var(--band-ink-2);line-height:1.68;
+  max-width:44ch;margin:0 auto var(--s7);text-wrap:pretty;
+}
+.ct-btns{display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap;margin-bottom:var(--s5)}
+.ct-primary{
+  display:inline-flex;align-items:center;justify-content:center;gap:.5rem;
+  min-height:50px;padding:.85rem 1.75rem;
+  background:var(--band-accent);color:#180C05;
+  font-size:var(--t-lg);font-weight:700;
+  border-radius:var(--r-sm);
+  transition:transform .18s var(--ease),box-shadow .2s,filter .2s;
+}
+.ct-primary:hover{transform:translateY(-2px);filter:brightness(1.08);box-shadow:0 10px 30px rgba(240,112,60,.28)}
+.ct-primary .ar{transition:transform .22s var(--ease)}
+.ct-primary:hover .ar{transform:translateX(3px)}
+.ct-secondary{
+  display:inline-flex;align-items:center;justify-content:center;gap:.4rem;
+  min-height:50px;padding:.85rem 1.4rem;
+  border:1px solid var(--band-line);color:var(--band-ink);
+  font-size:var(--t-md);font-weight:600;border-radius:var(--r-sm);
+  transition:border-color .2s,background .2s;
+}
+.ct-secondary:hover{border-color:var(--band-ink-2);background:rgba(255,255,255,.05)}
+.ct-note{font-size:var(--t-sm);color:var(--band-ink-2)}
+
+/* ============ FOOTER ============ */
+footer{background:var(--band);border-top:1px solid var(--band-line);padding:var(--s8) 2.5rem var(--s6)}
+.ft-grid{
+  max-width:calc(var(--w) + 5rem);margin:0 auto;
+  display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:var(--s7);
+  padding-bottom:var(--s7);border-bottom:1px solid var(--band-line);
+}
+.ft-brand{
+  font-size:var(--t-xl);font-weight:800;font-stretch:106%;
+  letter-spacing:-.03em;color:var(--band-ink);margin-bottom:.6rem;
+}
+.ft-tag{font-size:var(--t-sm);color:var(--band-ink-2);line-height:1.65;max-width:34ch}
+.ft-h{
+  font-size:var(--t-2xs);font-weight:700;font-stretch:84%;
+  letter-spacing:.15em;text-transform:uppercase;color:var(--band-ink-2);
+  margin-bottom:var(--s4);
+}
+.ft-list{display:flex;flex-direction:column;gap:.6rem}
+.ft-list a{
+  font-size:var(--t-md);color:var(--band-ink-2);width:fit-content;
+  border-bottom:1px solid transparent;transition:color .2s,border-color .2s;
+}
+.ft-list a:hover{color:var(--band-ink);border-color:var(--band-accent)}
+.ft-bot{
+  max-width:calc(var(--w) + 5rem);margin:0 auto;padding-top:var(--s5);
+  display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;
+  font-family:var(--f-mono);font-size:var(--t-xs);
+  letter-spacing:.04em;color:var(--band-ink-2);
+}
+
+/* ============ FLOATING ACTIONS ============ */
+.fab{
+  position:fixed;right:1.25rem;bottom:1.25rem;z-index:150;
+  width:46px;height:46px;border-radius:50%;
+  display:grid;place-items:center;
+  background:var(--paper);color:var(--ink);
+  border:1px solid var(--line-2);box-shadow:var(--shadow-md);
+  opacity:0;visibility:hidden;transform:translateY(10px);
+  transition:opacity .3s,transform .3s var(--ease),visibility .3s,border-color .2s,color .2s;
+}
+body.deep .fab{opacity:1;visibility:visible;transform:none}
+.fab:hover{color:var(--rust);border-color:var(--rust)}
+
+/* ============ MOTION ============ */
+@keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.r{opacity:0;transform:translateY(20px);transition:opacity .65s var(--ease),transform .65s var(--ease)}
+.r.in{opacity:1;transform:none}
+
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .r,.hero-name,.hero-title,.hero-thesis,.hero-proof,.hero-btns,.hero-logos{
+    animation:none!important;opacity:1!important;transform:none!important;transition:none!important;
+  }
+  .dot{animation:none!important}
+  .g-item img,.btn,.vol-card,.cap-card::before,.fab{transition-duration:.01ms!important}
+}
+
+/* ============ RESPONSIVE ============ */
+@media (max-width:1180px){
+  .about-grid{grid-template-columns:minmax(0,1fr) 260px;gap:var(--s8)}
+}
+@media (max-width:1080px){
+  .nav-links{display:none}
+  .nav-toggle{display:flex}
+  .nav-ghost{display:none}
+  .nav-cta{min-height:44px}
+  .skills-grid{grid-template-columns:repeat(2,1fr)}
+  .cap-grid{grid-template-columns:1fr}
+  .cap-card{padding:var(--s6) var(--s5)}
+}
+@media (max-width:960px){
+  :root{--s11:4.5rem;--s12:5.5rem}
+  .wrap{padding:0 1.75rem}
+  .about-grid{grid-template-columns:1fr;gap:var(--s7)}
+  .about-aside{position:static;display:grid;grid-template-columns:180px minmax(0,1fr);gap:var(--s6);align-items:center}
+  .portrait{margin:0;width:100%}
+  .exp-row,.work-row{grid-template-columns:1fr;gap:var(--s4)}
+  .w-metric{position:static;display:flex;align-items:baseline;gap:.75rem}
+  .w-unit{margin-top:0}
+  .ex-meta{padding-bottom:var(--s4);border-bottom:1px solid var(--line)}
+  .vol-grid,.edu-grid{grid-template-columns:repeat(2,1fr)}
+  .praise-grid{grid-template-columns:1fr}
+  #gallery{grid-template-columns:repeat(2,1fr)}
+  .g-item::before{padding-bottom:66%}
+  .g-item:nth-child(odd){margin-left:0}
+  .g-item:nth-child(n+3){margin-top:1px}
+  #stats{grid-template-columns:repeat(2,1fr)}
+  .stat-item:nth-child(2n){border-right:none}
+  .stat-item:nth-child(n+3){border-top:1px solid var(--band-line)}
+  .ft-grid{grid-template-columns:1fr 1fr;gap:var(--s6)}
+  .ft-brand-col{grid-column:1/-1}
+}
+@media (max-width:820px){
+  #hero{grid-template-columns:1fr;min-height:0}
+  .hero-l{
+    padding:calc(var(--nav-h) + var(--s8)) 1.75rem var(--s8);
+    min-height:auto;
+  }
+  .hero-r{display:none}
+}
+@media (max-width:640px){
+  :root{--s11:3.75rem;--s12:4.5rem;--s10:3.5rem;--s9:2.75rem}
+  .wrap{padding:0 1.25rem}
+  .hero-l{padding:calc(var(--nav-h) + var(--s7)) 1.25rem var(--s7)}
+  .hero-btns .btn{flex:1 1 100%}
+  .skills-grid{grid-template-columns:1fr}
+  .vol-grid,.edu-grid{grid-template-columns:1fr}
+  /* stack the aside: side-by-side crushes the stats card below ~700px */
+  .about-aside{grid-template-columns:1fr;gap:var(--s5);justify-items:center}
+  .portrait{width:min(190px,55%)}
+  .aside-stats{width:100%}
+  .stat-item{padding:var(--s6) .75rem}
+  #qb,#contact{padding-left:1.25rem;padding-right:1.25rem}
+  footer{padding-left:1.25rem;padding-right:1.25rem}
+  .ct-btns{flex-direction:column}
+  .ct-btns>a{width:100%}
+  .ex-nums{grid-template-columns:repeat(2,1fr)}
+  .ft-grid{grid-template-columns:1fr}
+  /* header logo already returns to top; the FAB would sit on top of body copy */
+  .fab{display:none}
+}
+
+/* ============ PRINT / RESUME ============ */
+@media print{
+  @page{margin:14mm 13mm}
+  :root{
+    --paper:#fff;--paper-2:#fff;--paper-3:#fff;
+    --ink:#000;--ink-2:#1a1a1a;--ink-3:#444;
+    --line:#ccc;--line-2:#bbb;--rust:#8a2f0f;--rust-2:#8a2f0f;--rust-wash:#fff;
+    --band:#fff;--band-ink:#000;--band-ink-2:#333;--band-line:#ccc;--band-accent:#8a2f0f;
+    --s11:1.1rem;--s12:1.1rem;--s10:1rem;--s9:.9rem;--s8:.9rem;--s7:.75rem;
+  }
+  body{background:#fff;color:#000;font-size:9.6pt;line-height:1.45}
+  #nav,#menu,#gallery,.fab,.hero-r,.hero-logos,.hero-btns,
+  #qb,.g-cap,.exp-more,#praise,.portrait,.ct-btns,.sec-head .label::after{display:none!important}
+  .r{opacity:1!important;transform:none!important}
+  .exp-row[hidden]{display:grid!important}
+  .section,#work,#skills,#vol,#edu{padding:.8rem 0;border-top:1px solid #ddd;background:#fff!important}
+  .wrap{padding:0;max-width:100%}
+  #hero{display:block;min-height:0;border:none;page-break-after:avoid}
+  .hero-l{padding:0;display:block}
+  .hero-l::before{display:none}
+  .hero-name{font-size:26pt;line-height:1;margin-bottom:.2rem}
+  .hero-title{margin:.25rem 0 .4rem}
+  .hero-title span{font-size:12pt}
+  .hero-thesis{font-size:9.6pt;margin-bottom:.3rem;max-width:none}
+  .hero-proof{font-size:9pt;margin-bottom:.4rem;max-width:none}
+  #hero::after{
+    content:'dhirloveneesh@gmail.com  ·  linkedin.com/in/loveneeshdhir  ·  x.com/LoveneeshDhir  ·  Delhi, India';
+    display:block;font-size:8.6pt;color:#333;padding-top:.35rem;border-top:1px solid #ddd;
+  }
+  #stats{grid-template-columns:repeat(4,1fr);border:1px solid #ddd;background:#fff!important}
+  .stat-item{padding:.5rem .3rem;border-color:#ddd}
+  .stat-n{font-size:16pt;color:#8a2f0f;margin-bottom:.15rem}
+  .stat-l{font-size:7.4pt;color:#444}
+  .stat-src{font-size:6.6pt;margin-top:.25rem;padding-top:.2rem;color:#666;border-color:#ddd}
+  .sec-h{font-size:13pt}
+  .sec-sub{display:none}
+  .sec-head{margin-bottom:.6rem}
+  .work-row,.exp-row{
+    grid-template-columns:150px 1fr;gap:1rem;padding:.65rem 0;
+    page-break-inside:avoid;break-inside:avoid;
+  }
+  .w-metric{display:block;position:static}
+  .w-unit{margin-top:.2rem;font-size:7.4pt;letter-spacing:.08em}
+  .ex-meta{border-bottom:none;padding-bottom:0}
+  .ex-date{margin-bottom:.25rem}
+  .w-n{font-size:20pt}
+  .w-title{font-size:11pt;margin-bottom:.2rem}
+  .w-body{font-size:9pt;max-width:none}
+  .ex-role{font-size:11pt;margin-bottom:.2rem}
+  .ex-context{font-size:9pt;margin-bottom:.35rem;max-width:none}
+  .ex-nums{border-color:#ddd;margin-bottom:.35rem}
+  .ex-nums{background:#fff!important}
+  .ex-num{padding:.35rem .5rem;background:#fff!important;border-color:#ddd}
+  .ex-num-n{font-size:11pt}
+  .ex-bul li{font-size:9pt;line-height:1.42}
+  .cap-grid,.skills-grid{grid-template-columns:repeat(3,1fr);border-color:#ddd;background:#fff}
+  .skills-grid{grid-template-columns:repeat(2,1fr)}
+  .cap-card,.sk-group{padding:.55rem .7rem;background:#fff!important;page-break-inside:avoid}
+  .cap-body{font-size:8.6pt}
+  .sk-pill{font-size:8pt;padding:.1rem .35rem;background:#fff!important;border-color:#ddd}
+  .about-grid{grid-template-columns:1fr}
+  .about-aside{display:none}
+  .about-copy p{font-size:9.2pt;line-height:1.55;margin-bottom:.45rem;max-width:none}
+  .about-copy p:first-of-type{font-size:9.8pt}
+  .vol-grid,.edu-grid{grid-template-columns:repeat(4,1fr);gap:.5rem}
+  .vol-card{padding:.5rem;border-color:#ddd;box-shadow:none;background:#fff!important;page-break-inside:avoid}
+  #contact{padding:.9rem 0;background:#fff!important}
+  .ct-h{font-size:14pt}
+  .ct-sub{font-size:9pt;margin-bottom:.4rem}
+  footer{background:#fff!important;padding:.5rem 0;border-top:1px solid #ddd}
+  .ft-grid{display:none}
+  .ft-bot{font-size:7.6pt;color:#555;padding:0}
+  a{color:#000}
+  .ln{color:#8a2f0f;border:none}
+}
+</style>
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<!-- ============ NAV ============ -->
+<header id="nav">
+  <a class="nav-id" href="#hero" aria-label="Loveneesh Dhir, back to top">
+    <img class="nav-mark" src="%%AVATAR%%" alt="" width="28" height="28">
+    <span>Loveneesh Dhir</span>
+  </a>
+  <nav class="nav-links" aria-label="Section navigation">
+    <a href="#work">Work</a>
+    <a href="#approach">Approach</a>
+    <a href="#about">About</a>
+    <a href="#exp">Experience</a>
+    <a href="#contact">Contact</a>
+  </nav>
+  <div class="nav-act">
+    <a class="nav-ghost" href="https://drive.google.com/drive/folders/1i2fP6Q9tuIfIX8euCvJw0R93bzSoEtzG?usp=sharing" target="_blank" rel="noopener">R&eacute;sum&eacute; <span aria-hidden="true">&nearr;</span></a>
+    <a href="mailto:dhirloveneesh@gmail.com?subject=Role%20conversation" class="nav-cta">Let&rsquo;s talk <span aria-hidden="true">&rarr;</span></a>
+    <button class="nav-toggle" id="navToggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="menu"><span></span></button>
+  </div>
+  <div id="progress" aria-hidden="true"></div>
+</header>
+
+<!-- ============ MOBILE MENU ============ -->
+<div id="menu" aria-label="Menu" aria-hidden="true">
+  <nav>
+    <ul>
+      <li><a class="m-link" href="#work"><span class="m-i">01</span>Work</a></li>
+      <li><a class="m-link" href="#approach"><span class="m-i">02</span>Approach</a></li>
+      <li><a class="m-link" href="#skills"><span class="m-i">03</span>Skills</a></li>
+      <li><a class="m-link" href="#about"><span class="m-i">04</span>About</a></li>
+      <li><a class="m-link" href="#exp"><span class="m-i">05</span>Experience</a></li>
+      <li><a class="m-link" href="#praise"><span class="m-i">06</span>References</a></li>
+      <li><a class="m-link" href="#contact"><span class="m-i">07</span>Contact</a></li>
+    </ul>
+  </nav>
+  <div class="menu-foot">
+    <a href="mailto:dhirloveneesh@gmail.com?subject=Role%20conversation" class="btn btn-primary">Get in touch <span class="ar" aria-hidden="true">&rarr;</span></a>
+    <a class="btn btn-secondary" href="https://drive.google.com/drive/folders/1i2fP6Q9tuIfIX8euCvJw0R93bzSoEtzG?usp=sharing" target="_blank" rel="noopener">Download r&eacute;sum&eacute; <span aria-hidden="true">&nearr;</span></a>
+  </div>
+</div>
+
+<main id="main" tabindex="-1">
+
+<!-- ============ HERO ============ -->
+<section id="hero" aria-label="Introduction">
+  <div class="hero-l">
+    <h1 class="hero-name">Loveneesh<br>Dhir</h1>
+    <p class="hero-title"><span>Community, Growth &amp; Partnerships</span></p>
+    <p class="hero-thesis">Most companies have the product figured out. The community, the developer programs, the partnerships: <strong>that part usually lags.</strong> That&rsquo;s what I build.</p>
+    <p class="hero-proof">Six years, four companies, always from zero. <b>450,000 users in 72 hours</b> with no paid spend. <b>140+ contributors</b> running independently across <b>25+ countries</b>. Partnerships with Aptos, Polygon, and OKX.</p>
+    <div class="hero-btns">
+      <a href="#work" class="btn btn-primary">See the work <span class="ar" aria-hidden="true">&rarr;</span></a>
+      <a class="btn btn-secondary" href="https://drive.google.com/drive/folders/1i2fP6Q9tuIfIX8euCvJw0R93bzSoEtzG?usp=sharing" target="_blank" rel="noopener">Download r&eacute;sum&eacute; <span aria-hidden="true">&nearr;</span></a>
+    </div>
+    <div class="hero-logos">
+      <p class="hero-logos-l">Built ecosystems at</p>
+      <p class="hero-logos-r">
+        <span>Union Labs</span><span>Shardeum</span><span>Hashed Emergent</span><span>OG Club</span><span>Commudle</span><span>Scaler</span>
+      </p>
+    </div>
+  </div>
+  <div class="hero-r">
+    <img src="%%HEADSHOT%%" alt="Portrait of Loveneesh Dhir" width="675" height="900" fetchpriority="high">
+  </div>
+</section>
+
+<!-- ============ STATS ============ -->
+<section id="stats" aria-label="Key results">
+  <div class="stat-item">
+    <p class="stat-n"><span class="sr-only">450 thousand</span><span class="stat-num" data-count="450K" aria-hidden="true">450K</span></p>
+    <p class="stat-l">Platform users<br>in 72 hours</p>
+    <p class="stat-src">Union Labs</p>
+  </div>
+  <div class="stat-item">
+    <p class="stat-n"><span class="sr-only">140 plus</span><span class="stat-num" data-count="140+" aria-hidden="true">140+</span></p>
+    <p class="stat-l">Contributors built<br>across 25+ countries</p>
+    <p class="stat-src">Shardeum</p>
+  </div>
+  <div class="stat-item">
+    <p class="stat-n"><span class="sr-only">51 thousand</span><span class="stat-num" data-count="51K" aria-hidden="true">51K</span></p>
+    <p class="stat-l">Newsletter subscribers<br>20%+ open rate</p>
+    <p class="stat-src">Commudle</p>
+  </div>
+  <div class="stat-item">
+    <p class="stat-n"><span class="sr-only">5 million plus</span><span class="stat-num" data-count="5M+" aria-hidden="true">5M+</span></p>
+    <p class="stat-l">People reached<br>across 30+ countries</p>
+    <p class="stat-src">Six years</p>
+  </div>
+</section>
+
+<!-- ============ GALLERY ============ -->
+<div id="gallery" role="group" aria-label="Photographs from community programs">
+  <figure class="g-item">
+    <img src="%%HERO%%" alt="Loveneesh Dhir speaking on the main stage at FIL Bangalore" width="1000" height="666" loading="lazy">
+    <figcaption class="g-cap">FIL Bangalore &middot; Main Stage</figcaption>
+  </figure>
+  <figure class="g-item">
+    <img src="%%G1%%" alt="Proof of Community campus workshop during the India tour" width="700" height="393" loading="lazy">
+    <figcaption class="g-cap">Proof of Community &middot; India Tour</figcaption>
+  </figure>
+  <figure class="g-item">
+    <img src="%%G2%%" alt="Loveneesh Dhir with the OG Club community at a meetup" width="700" height="490" loading="lazy">
+    <figcaption class="g-cap">Community Meetup &middot; OG Club</figcaption>
+  </figure>
+  <figure class="g-item">
+    <img src="%%G3%%" alt="Panel discussion at ETH Vietnam" width="700" height="446" loading="lazy">
+    <figcaption class="g-cap">Panel &middot; ETH Vietnam</figcaption>
+  </figure>
+</div>
+
+<!-- ============ SELECTED WORK ============ -->
+<section id="work" class="section">
+  <div class="wrap">
+    <div class="sec-head r">
+      <p class="label">Selected Work</p>
+      <h2 class="sec-h">Four problems that had no playbook</h2>
+      <p class="sec-sub">Each of these started without a team, without a budget, or without precedent. The numbers are the outcome. The method is the point.</p>
+    </div>
+    <div class="work-list">
+
+      <article class="work-row r">
+        <div class="w-metric">
+          <p class="w-n">5,200</p>
+          <p class="w-unit">participants<br>14 time zones</p>
+        </div>
+        <div>
+          <p class="w-tag"><a href="https://union.build" target="_blank" rel="noopener">Union Labs</a><span class="sep"></span>2024</p>
+          <h3 class="w-title">Coordinating 5,200 strangers through a process that could not be redone</h3>
+          <p class="w-body">A zero-knowledge trusted setup ceremony required 5,200+ participants across 14 time zones to take specific actions in a precise sequence, collectively generating the cryptographic parameters the network&rsquo;s proofs depend on, a process that could not be restarted once begun. The hard part was never technical. It was getting thousands of independent people, in dozens of countries, through a process most had never seen, with zero tolerance for incomplete participation. We gamified the funnel, made enrollment self-service, and reached full completion with no manual intervention. No playbook existed, so we wrote one.</p>
+        </div>
+      </article>
+
+      <article class="work-row r">
+        <div class="w-metric">
+          <p class="w-n">450K</p>
+          <p class="w-unit">users<br>72 hours</p>
+        </div>
+        <div>
+          <p class="w-tag"><a href="https://union.build" target="_blank" rel="noopener">Union Labs</a><span class="sep"></span>Quest Platform</p>
+          <h3 class="w-title">Zero to 450,000 users before the weekend ended</h3>
+          <p class="w-body">Designed and launched Union&rsquo;s in-house growth platform. 450,000 users onboarded in the first 72 hours through a funnel that cost nothing to acquire. The new testnet drove three times the transaction volume of its predecessor. It proved what I keep coming back to: distribution, built right, is itself a product feature.</p>
+        </div>
+      </article>
+
+      <article class="work-row r">
+        <div class="w-metric">
+          <p class="w-n">53</p>
+          <p class="w-unit">campuses<br>90 days</p>
+        </div>
+        <div>
+          <p class="w-tag"><a href="https://shardeum.org" target="_blank" rel="noopener">Shardeum</a><span class="sep"></span>Proof of Community</p>
+          <h3 class="w-title">Opening a market of 20,000 people on a $30K budget</h3>
+          <p class="w-body">Shardeum needed presence in India with no regional team, no local recognition, and a lean budget. The plan was 53 campus activations across 90 consecutive days, run single-handed from start to finish. The result was not the tour. It was 20,000+ students reached, 25+ university communities launched, and a contributor network that kept growing after I left the country. The operating playbook became the template for Shardeum&rsquo;s global expansion.</p>
+        </div>
+      </article>
+
+      <article class="work-row r">
+        <div class="w-metric">
+          <p class="w-n">800+</p>
+          <p class="w-unit">attendees<br>6-week brief</p>
+        </div>
+        <div>
+          <p class="w-tag"><a href="https://union.build" target="_blank" rel="noopener">Union Labs</a><span class="sep"></span><a href="https://devcon.org" target="_blank" rel="noopener">Devcon</a> Bangkok</p>
+          <h3 class="w-title">A flagship event from a blank brief in six weeks</h3>
+          <p class="w-body">Union needed a flagship presence at <a href="https://devcon.org" target="_blank" rel="noopener" class="ln">Devcon</a> Bangkok, one of the largest developer gatherings in the world. The brief arrived six weeks out. Venue, programming, speakers, AV, catering, and international travel logistics all ran single-threaded through me. 1,000+ registrations, 800+ attendees. The number matters less than what it takes to run a complex multi-stakeholder operation from nothing without dropping a detail.</p>
+        </div>
+      </article>
+
+    </div>
+  </div>
+</section>
+
+<!-- ============ APPROACH ============ -->
+<section id="approach" class="section">
+  <div class="wrap">
+    <div class="sec-head r">
+      <p class="label">How I Work</p>
+      <h2 class="sec-h">Three things I do better than most</h2>
+      <p class="sec-sub">Not learned from a playbook. Built by doing it four times over, in markets I had to figure out myself.</p>
+    </div>
+    <div class="cap-grid">
+      <article class="cap-card r">
+        <p class="cap-i">01</p>
+        <h3 class="cap-title">The infrastructure behind adoption</h3>
+        <p class="cap-kicker">Community &amp; developer programs</p>
+        <p class="cap-body">I design the programs that turn early users into communities that keep growing when I&rsquo;m not in the room. Developer fellowships, accelerator cohorts, ambassador networks, contributor programs: built on a clear hypothesis, run against specific KPIs, handed off with a written playbook. If it can&rsquo;t run without me, it wasn&rsquo;t built right.</p>
+      </article>
+      <article class="cap-card r">
+        <p class="cap-i">02</p>
+        <h3 class="cap-title">Distribution without the ad spend</h3>
+        <p class="cap-kicker">Growth &amp; partnerships</p>
+        <p class="cap-body">450,000 users in 72 hours. A newsletter at 51,000 subscribers and a 20% open rate. Partnerships with Aptos, Polygon, Arbitrum, OKX, and The Sandbox. Growth earned through community and partnerships outlasts paid acquisition and costs a fraction of it. I build the campaigns, the BD pipelines, the CRMs, and the partner programs that generate that distribution.</p>
+      </article>
+      <article class="cap-card r">
+        <p class="cap-i">03</p>
+        <h3 class="cap-title">Complex programs, single-threaded ownership</h3>
+        <p class="cap-kicker">Operations at scale</p>
+        <p class="cap-body">I&rsquo;ve coordinated a 5,200-person program across 14 time zones, run 53 campus activations in 90 days on $30,000, and produced an 800-person flagship conference in six weeks. The specifics change every time. What doesn&rsquo;t: I own the whole thing, I make it work, and I build the system so the next one doesn&rsquo;t depend on me.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SKILLS ============ -->
+<section id="skills" class="section">
+  <div class="wrap">
+    <div class="sec-head r">
+      <p class="label">Capabilities</p>
+      <h2 class="sec-h">What I bring to every role</h2>
+    </div>
+    <div class="skills-grid r">
+      <div class="sk-group">
+        <h3 class="sk-label">Community &amp; Developer Programs</h3>
+        <div class="sk-pills">
+          <span class="sk-pill">Community Operations</span>
+          <span class="sk-pill">Developer Relations</span>
+          <span class="sk-pill">Ambassador Programs</span>
+          <span class="sk-pill">Fellowship Design</span>
+          <span class="sk-pill">Discord &amp; Telegram</span>
+          <span class="sk-pill">User Onboarding</span>
+          <span class="sk-pill">Community-Led Growth</span>
+        </div>
+      </div>
+      <div class="sk-group">
+        <h3 class="sk-label">Operations &amp; Program Design</h3>
+        <div class="sk-pills">
+          <span class="sk-pill">Program Design</span>
+          <span class="sk-pill">Accelerator Management</span>
+          <span class="sk-pill">Campus Activations</span>
+          <span class="sk-pill">Conference Production</span>
+          <span class="sk-pill">International Logistics</span>
+          <span class="sk-pill">Vendor Management</span>
+          <span class="sk-pill">Multi-currency Budgets</span>
+          <span class="sk-pill">Cross-Functional Leadership</span>
+        </div>
+      </div>
+      <div class="sk-group">
+        <h3 class="sk-label">Growth &amp; GTM Strategy</h3>
+        <div class="sk-pills">
+          <span class="sk-pill">Go-to-Market Planning</span>
+          <span class="sk-pill">Product Launch</span>
+          <span class="sk-pill">Market Expansion</span>
+          <span class="sk-pill">User Acquisition</span>
+          <span class="sk-pill">Content Strategy</span>
+          <span class="sk-pill">Newsletter Operations</span>
+          <span class="sk-pill">PR &amp; Agency Management</span>
+        </div>
+      </div>
+      <div class="sk-group">
+        <h3 class="sk-label">Partnerships &amp; BD</h3>
+        <div class="sk-pills">
+          <span class="sk-pill">Partnership Development</span>
+          <span class="sk-pill">BD Pipeline &amp; CRM</span>
+          <span class="sk-pill">Institutional Outreach</span>
+          <span class="sk-pill">Ecosystem BD</span>
+          <span class="sk-pill">APAC &amp; MENA Markets</span>
+          <span class="sk-pill">Stakeholder Management</span>
+          <span class="sk-pill">Deal Flow Infrastructure</span>
+          <span class="sk-pill">Founder Relations</span>
+          <span class="sk-pill">Investor &amp; VC Relations</span>
+        </div>
+      </div>
+      <div class="sk-group" style="grid-column:1/-1">
+        <h3 class="sk-label">Tools</h3>
+        <div class="sk-pills">
+          <span class="sk-pill">HubSpot</span>
+          <span class="sk-pill">Salesforce</span>
+          <span class="sk-pill">Notion</span>
+          <span class="sk-pill">Airtable</span>
+          <span class="sk-pill">Mailchimp</span>
+          <span class="sk-pill">Google Analytics</span>
+          <span class="sk-pill">Discord</span>
+          <span class="sk-pill">Telegram</span>
+          <span class="sk-pill">Trello</span>
+          <span class="sk-pill">Slack</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ABOUT ============ -->
+<section id="about" class="section">
+  <div class="wrap">
+    <div class="sec-head r">
+      <p class="label">About</p>
+      <h2 class="sec-h">The philosophy behind the work</h2>
+    </div>
+    <div class="about-grid">
+      <div class="about-copy">
+        <p class="r">Community, growth, and partnerships. That&rsquo;s where I work. My job is building the infrastructure that turns a technology company&rsquo;s first hundred users into something self-sustaining: developer programs, ambassador networks, growth campaigns, strategic partnerships. I&rsquo;ve done it at four companies from scratch, as the person responsible for all of it at each one.</p>
+        <p class="r">The track record, company by company. At <strong>Union Labs</strong>, 450,000 users in 72 hours through a zero-cost campaign, a 9-week accelerator with 50 competing teams, and partnerships with Aptos, Polygon, and Movement Labs. At <strong>Shardeum</strong>, 140+ contributors running independently across 25+ countries, built from zero using programs I designed. At <strong>OG Club</strong>, a community I helped grow to 29,000 members before it was acquired, with 15+ founders funded. At <strong>Commudle</strong>, 10,000 users in six months on a $0 marketing budget, and a newsletter that reached 51,000 developers at a 20% open rate.</p>
+        <p class="r">The problem is always a version of the same thing. A company has something worth caring about, but not enough people care yet. The community doesn&rsquo;t exist. The developer programs were never designed. Growth depends entirely on paid acquisition. I build the alternatives: programs that generate loyalty, partnerships that generate distribution, community infrastructure that keeps growing without budget.</p>
+        <p class="r">What separates this from a typical community or growth hire is scope. Most people specialize in one channel. I&rsquo;ve owned community, growth, partnerships, developer relations, and program design at the same time, at every company I&rsquo;ve worked at. That breadth changes what&rsquo;s achievable, because the growth motion and the community motion reinforce each other when the same person owns both.</p>
+        <p class="r">Since 2020, that includes training 20,000+ students and professionals at organizations like TCS and Infosys and at IITs, IIMs, and IIITs. Currently building <a href="https://aicabal.xyz" target="_blank" rel="noopener" class="ln">AI Cabal</a>, a practitioner-led AI community for builders across India. Looking for community, ecosystem, growth, or business development leadership at AI infrastructure, developer tool, or technical platform companies, where that infrastructure hasn&rsquo;t been built yet.</p>
+      </div>
+      <aside class="about-aside r" aria-label="Career at a glance">
+        <div class="portrait">
+          <img src="%%PORTRAIT%%" alt="Loveneesh Dhir" width="380" height="380" loading="lazy">
+        </div>
+        <div class="aside-stats">
+          <div class="a-stat"><span class="a-label">Countries activated</span><span class="a-val">30+</span></div>
+          <div class="a-stat"><span class="a-label">Students &amp; professionals taught</span><span class="a-val">20K+</span></div>
+          <div class="a-stat"><span class="a-label">In-person activations</span><span class="a-val">800+</span></div>
+          <div class="a-stat"><span class="a-label">Virtual activations</span><span class="a-val">200+</span></div>
+          <div class="a-stat"><span class="a-label">University partnerships</span><span class="a-val">45+</span></div>
+          <div class="a-stat"><span class="a-label">Years in the work</span><span class="a-val">6</span></div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- ============ QUOTE ============ -->
+<section id="qb" aria-label="Point of view">
+  <blockquote class="qb-inner">
+    <span class="qb-mark" aria-hidden="true"></span>
+    <p class="qb-q">Scale is rarely a growth problem.<br>It&rsquo;s usually an alignment problem.</p>
+    <footer class="qb-by">Loveneesh Dhir</footer>
+  </blockquote>
+</section>
+
+<!-- ============ EXPERIENCE ============ -->
+<section id="exp" class="section">
+  <div class="wrap">
+    <div class="sec-head r">
+      <p class="label">Experience</p>
+      <h2 class="sec-h">Where I&rsquo;ve built</h2>
+      <p class="sec-sub">Nine roles, built market by market across four continents. Always from zero, always with a measurable outcome.</p>
+    </div>
+    <div class="exp-list" id="expList">
+
+      <article class="exp-row r">
+        <div class="ex-meta">
+          <p class="ex-date"><span class="ex-now">Jul 2026 &ndash; Present</span></p>
+          <p class="ex-co"><a href="https://aicabal.xyz" target="_blank" rel="noopener">AI Cabal</a></p>
+          <p class="ex-co-sub">Pan-India AI builder community, currently in build: practitioner network, newsletter, and roadshow series.</p>
+        </div>
+        <div class="ex-body">
+          <h3 class="ex-role">Founder</h3>
+          <p class="ex-context"><strong>Challenge:</strong> India has a growing base of AI builders and no practitioner-led community at real density. Most AI events stay surface-level; most newsletters are reposts. <strong>Action:</strong> Building AI Cabal from scratch, designing the practitioner network, newsletter, and in-person roadshow program together rather than bolting them on later. <strong>Status:</strong> Founded July 2026. Early build, nothing shipped publicly yet.</p>
+          <ul class="ex-bul">
+            <li>Designing The Cabal Dispatch, a newsletter for AI practitioners, and a planned 5-city roadshow across Delhi, Bengaluru, Hyderabad, Chennai, and Mumbai.</li>
+            <li>Building the community and content infrastructure from zero, applying the playbook that produced 450K users and 140+ contributors at prior companies, now in the AI space.</li>
+          </ul>
+        </div>
+      </article>
+      <article class="exp-row r">
+        <div class="ex-meta">
+          <p class="ex-date">Aug 2024 &ndash; Jul 2026</p>
+          <p class="ex-co"><a href="https://union.build" target="_blank" rel="noopener">Union Labs</a></p>
+          <p class="ex-co-sub">Zero-knowledge protocol connecting blockchains for cross-chain asset transfers and messaging.</p>
+        </div>
+        <div class="ex-body">
+          <h3 class="ex-role">Head of Ecosystem</h3>
+          <p class="ex-context"><strong>Challenge:</strong> Join an infrastructure company at pre-launch with zero users, no community playbook, and a mandate to build global ecosystem and GTM from scratch. <strong>Action:</strong> Owned community, developer programs, partnerships, PR, and growth at the same time. <strong>Result:</strong> 450K users in 72 hours, a 5,200-person zero-knowledge trusted setup ceremony, an 800-person flagship conference built in six weeks, and a self-sustaining community across 30+ countries at exit.</p>
+          <div class="ex-nums">
+            <div class="ex-num"><p class="ex-num-n">5,200+</p><p class="ex-num-l">Program participants</p></div>
+            <div class="ex-num"><p class="ex-num-n">450K</p><p class="ex-num-l">Quest users, 72 hrs</p></div>
+            <div class="ex-num"><p class="ex-num-n">25K+</p><p class="ex-num-l">Monthly call attendees</p></div>
+            <div class="ex-num"><p class="ex-num-n">5&times;</p><p class="ex-num-l">APAC traffic growth</p></div>
+          </div>
+          <ul class="ex-bul">
+            <li>Built an outbound BD engine across wallets, exchanges, and infrastructure providers, closing partnerships with <a href="https://aptoslabs.com" target="_blank" rel="noopener" class="ln">Aptos</a>, <a href="https://polygon.technology" target="_blank" rel="noopener" class="ln">Polygon</a>, <a href="https://movementlabs.xyz" target="_blank" rel="noopener" class="ln">Movement Labs</a>, <a href="https://supra.com" target="_blank" rel="noopener" class="ln">Supra</a>, and <a href="https://citrea.xyz" target="_blank" rel="noopener" class="ln">Citrea</a> from sourcing through execution with senior counterparts; maintained a CRM of 300+ active ecosystem relationships.</li>
+            <li>Designed and launched Union&rsquo;s Quest platform: 50,000 users in the first 24 hours, 450,000 by 72 hours, with zero paid acquisition; the new testnet drove 3&times; the transaction volume of its predecessor.</li>
+            <li>Built distribution across X, Discord, and Telegram alongside community programs, and ran monthly community calls with 25,000+ live attendees feeding directly into product and GTM decisions.</li>
+            <li>Built Union Fellowship (8 teams, 2 secured incubation) and <a href="https://x.com/union_build/status/1891941420774326716" target="_blank" rel="noopener" class="ln">U-Combinator</a> (9-week accelerator, 50 competing teams), both designed and run from scratch; U-Combinator&rsquo;s top 10 teams advanced directly into Fellowship&rsquo;s second cohort.</li>
+            <li>Led GTM for Auro, Union&rsquo;s yield product: owned the outbound BD pipeline, 300+ project CRM, and institutional LP outreach in full.</li>
+            <li>Coordinated the world&rsquo;s largest zero-knowledge trusted setup ceremony: 5,200+ participants across 14 time zones, gamified for self-service, requiring zero manual intervention.</li>
+            <li>Managed external PR agencies across APAC; set the narrative, held them to coverage KPIs, grew site traffic 5&times;.</li>
+            <li>Ran 50+ ecosystem events across APAC, LATAM, and MENA with 5,000+ combined attendees, building brand presence and driving developer and user adoption.</li>
+            <li>Produced Union&rsquo;s flagship conference at <a href="https://devcon.org" target="_blank" rel="noopener" class="ln">Devcon</a> Bangkok: 1,000+ registrations, 800+ attendees, a six-week brief, sole end-to-end ownership.</li>
+          </ul>
+        </div>
+      </article>
+      <article class="exp-row r">
+        <div class="ex-meta">
+          <p class="ex-date">Dec 2022 &ndash; Jul 2024</p>
+          <p class="ex-co"><a href="https://shardeum.org" target="_blank" rel="noopener">Shardeum Foundation</a></p>
+          <p class="ex-co-sub">EVM-compatible Layer-1 blockchain using dynamic state sharding to keep transaction fees permanently low.</p>
+        </div>
+        <div class="ex-body">
+          <h3 class="ex-role">Community Lead, APAC &amp; MENA</h3>
+          <p class="ex-context"><strong>Challenge:</strong> Build regional presence across 25+ countries for a high-growth platform with no brand recognition, no local team, and a lean budget. <strong>Action:</strong> Designed the ambassador program, contributor infrastructure, and regional playbook from zero, then seeded the market personally before handing it to contributors. <strong>Result:</strong> 140+ contributors running independently across 25+ countries, a self-sustaining regional program built entirely without paid marketing.</p>
+          <div class="ex-nums">
+            <div class="ex-num"><p class="ex-num-n">140+</p><p class="ex-num-l">Contributors built</p></div>
+            <div class="ex-num"><p class="ex-num-n">25+</p><p class="ex-num-l">Countries</p></div>
+            <div class="ex-num"><p class="ex-num-n">40K+</p><p class="ex-num-l">Community reach</p></div>
+            <div class="ex-num"><p class="ex-num-n">400+</p><p class="ex-num-l">Activations</p></div>
+          </div>
+          <ul class="ex-bul">
+            <li>Built the Super Shardian contributor program: 140+ contributors across 25+ countries, running independently using playbooks I wrote.</li>
+            <li>Closed partnerships with <a href="https://okx.com/web3" target="_blank" rel="noopener" class="ln">OKX Wallet</a>, <a href="https://www.sandbox.game" target="_blank" rel="noopener" class="ln">The Sandbox</a>, <a href="https://biconomy.io" target="_blank" rel="noopener" class="ln">Biconomy</a>, <a href="https://push.org" target="_blank" rel="noopener" class="ln">Push Protocol</a>, and <a href="https://www.jump.trade" target="_blank" rel="noopener" class="ln">jump.trade</a>, running both outbound sourcing and inbound partner requests; sourced 120+ qualified ecosystem leads.</li>
+            <li>Designed three replicable community programs from scratch: <a href="https://github.com/shardeum/Shardeum-ProofOfCommunity-Workshops" target="_blank" rel="noopener" class="ln">Proof of Community</a>, <a href="https://docs.google.com/document/d/13ofz3ovMvbLdejWqiKlVrTP5AAunJahPnGkI8bh2t4Q/edit" target="_blank" rel="noopener" class="ln">Shardeum is Borderless</a> (UGC), and Shardeum Leagues.</li>
+            <li>Ran 400+ community activations across the region, tied directly to wallet creation and developer activation and anchored by PoC Backpacking India: 53 campus activations in 90 days on $30,000, reaching 20,000+ students and professionals, with the program adopted as blockchain curriculum at 25+ universities.</li>
+            <li>Produced Shardeum&rsquo;s flagship conference at <a href="https://indiablockchainweek.com" target="_blank" rel="noopener" class="ln">India Blockchain Week</a>: 500+ attendees, multiple speaker tracks, owned solo from brief to teardown.</li>
+          </ul>
+        </div>
+      </article>
+      <article class="exp-row r" data-more>
+        <div class="ex-meta">
+          <p class="ex-date">Sep 2022 &ndash; Dec 2022</p>
+          <p class="ex-co"><a href="https://www.hashedem.com" target="_blank" rel="noopener">Hashed Emergent</a></p>
+          <p class="ex-co-sub">Web3 venture capital firm backing founders from India and other emerging markets.</p>
+        </div>
+        <div class="ex-body">
+          <h3 class="ex-role">Growth Associate, Ecosystem &amp; Communities</h3>
+          <p class="ex-context"><strong>Challenge:</strong> Support a VC firm&rsquo;s portfolio on India GTM while producing the country&rsquo;s largest technology conference and co-authoring a market research report. <strong>Action:</strong> Embedded directly with portfolio teams on strategy, owned India Blockchain Week logistics outright, and co-wrote the Nasscom India Startup Landscape Report. <strong>Result:</strong> 3,000+ registrations across student mixers, 100+ candidates in the portfolio hiring pipeline, and a report published to 50,000+ industry readers.</p>
+          <div class="ex-nums">
+            <div class="ex-num"><p class="ex-num-n">50K+</p><p class="ex-num-l">Report readers</p></div>
+            <div class="ex-num"><p class="ex-num-n">3K+</p><p class="ex-num-l">Mixer registrations</p></div>
+            <div class="ex-num"><p class="ex-num-n">100+</p><p class="ex-num-l">Talent pipeline</p></div>
+          </div>
+          <ul class="ex-bul">
+            <li>Supported GTM strategy for 5+ portfolio companies, synthesizing market intelligence and competitor analysis for the investment and BD teams.</li>
+            <li>Co-authored the <a href="https://community.nasscom.in/communities/productstartups/india-web3-startup-landscape-emerging-technology-leadership-frontier" target="_blank" rel="noopener" class="ln">India Startup Landscape Report</a> with <a href="https://nasscom.in" target="_blank" rel="noopener" class="ln">Nasscom</a>, covering 12 emerging technology categories, published to 50,000+ industry readers.</li>
+            <li>Built the talent pipeline: 5 student mixers, 3,000+ registrations, 750+ attendees, and 100+ candidates shortlisted for portfolio company hiring.</li>
+            <li>Ran a Token2049 Singapore gaming night with 5 partners and 3 founder-centric events around ETH India, extending the portfolio&rsquo;s reach into founder and investor circles.</li>
+            <li>Planned full logistics for <a href="https://indiablockchainweek.com" target="_blank" rel="noopener" class="ln">India Blockchain Week</a>: venue, vendors, AV, catering, speaker travel, and on-ground coordination.</li>
+          </ul>
+        </div>
+      </article>
+      <article class="exp-row r" data-more>
+        <div class="ex-meta">
+          <p class="ex-date">Mar 2022 &ndash; Aug 2025</p>
+          <p class="ex-co"><a href="https://ogclubdao.com" target="_blank" rel="noopener">OG Club</a></p>
+          <p class="ex-co-sub">Web3 community and startup network guiding newcomers into crypto, operating across 25+ cities and 8 countries. Acquired by <a href="https://brinc.io" target="_blank" rel="noopener" class="ln">Brinc Accelerator</a>.</p>
+        </div>
+        <div class="ex-body">
+          <h3 class="ex-role">Core Contributor</h3>
+          <p class="ex-context"><strong>Challenge:</strong> Build a founder community and startup support infrastructure from scratch with no funding, no team, and no existing audience. <strong>Action:</strong> Joined OG Club as a core contributor, designed the founder programs and deal flow infrastructure, and built presence city by city across Asia. <strong>Result:</strong> 29,000+ members, 15+ founders funded, and an acquisition by Brinc Accelerator.</p>
+          <div class="ex-nums">
+            <div class="ex-num"><p class="ex-num-n">29K+</p><p class="ex-num-l">Members built</p></div>
+            <div class="ex-num"><p class="ex-num-n">15+</p><p class="ex-num-l">Founders funded</p></div>
+            <div class="ex-num"><p class="ex-num-n">400+</p><p class="ex-num-l">Jobs created</p></div>
+            <div class="ex-num"><p class="ex-num-n">8</p><p class="ex-num-l">Countries</p></div>
+          </div>
+          <ul class="ex-bul">
+            <li>Launched Builders Assemble and Founders Guild with <a href="https://sinogroup.io" target="_blank" rel="noopener" class="ln">Sino Global</a> and Graviton: 15+ founders raised from pre-seed to seed, 50+ VC deal flow introductions facilitated.</li>
+            <li>Grew from zero to 29,000+ members in 3 years; the community was acquired by <a href="https://brinc.io" target="_blank" rel="noopener" class="ln">Brinc Accelerator</a>. We wrote the post-acquisition playbook adopted by Brinc&rsquo;s successor team.</li>
+            <li>Created 400+ job opportunities through the community network; hosted 100+ IRL events building city-by-city presence across 25+ cities in 8 countries.</li>
+          </ul>
+        </div>
+      </article>
+      <article class="exp-row r" data-more>
+        <div class="ex-meta">
+          <p class="ex-date">Jan 2022 &ndash; Aug 2022</p>
+          <p class="ex-co"><a href="https://gitopia.com" target="_blank" rel="noopener">Gitopia</a></p>
+          <p class="ex-co-sub">Decentralized Git platform that rewards open-source contributions on-chain.</p>
+        </div>
+        <div class="ex-body">
+          <h3 class="ex-role">Developer Relations Manager</h3>
+          <p class="ex-context"><strong>Challenge:</strong> Build a developer community and contributor pipeline for a new open-source collaboration platform with no existing audience. <strong>Action:</strong> Led developer relations through technical content, structured onboarding, and partner integrations, tracking contributors from first touch to first commit. <strong>Result:</strong> A developer community with an active contributor funnel and a direct product feedback loop into engineering.</p>
+          <ul class="ex-bul">
+            <li>Built the developer community from zero through technical content, contribution programs, and structured onboarding that shortened time to first contribution.</li>
+            <li>Owned <a href="https://blog.gitopia.com" target="_blank" rel="noopener" class="ln">technical blogs</a> and <a href="https://www.youtube.com/channel/UCsAVjkAUnT5krP_e8HyFRHg" target="_blank" rel="noopener" class="ln">educational content</a> across all channels, and managed partner integrations for new platform partnerships, closing the loop between community feedback and the product roadmap.</li>
+          </ul>
+        </div>
+      </article>
+      <article class="exp-row r" data-more>
+        <div class="ex-meta">
+          <p class="ex-date">Feb 2021 &ndash; Mar 2021</p>
+          <p class="ex-co"><a href="https://talentsprint.com" target="_blank" rel="noopener">TalentSprint</a></p>
+          <p class="ex-co-sub">NSE Group company delivering deep-tech learning programs with academic and industry partners.</p>
+        </div>
+        <div class="ex-body">
+          <h3 class="ex-role">Community &amp; Growth Consultant</h3>
+          <p class="ex-context"><strong>Challenge:</strong> Grow registrations for TalentSprint Women Engineers, a Google-backed program, within a short, program-scoped engagement. <strong>Action:</strong> Built an ambassador program from scratch and partnered directly with university placement cells to drive sign-ups. <strong>Result:</strong> Registrations grew 3&times; year over year.</p>
+          <div class="ex-nums">
+            <div class="ex-num"><p class="ex-num-n">3&times;</p><p class="ex-num-l">Registration growth</p></div>
+            <div class="ex-num"><p class="ex-num-n">120+</p><p class="ex-num-l">University placement cells</p></div>
+            <div class="ex-num"><p class="ex-num-n">80+</p><p class="ex-num-l">Ambassadors built</p></div>
+          </div>
+          <ul class="ex-bul">
+            <li>Scaled TalentSprint Women Engineers, a Google-backed program, to 3&times; its prior year&rsquo;s registration growth.</li>
+            <li>Built an 80+ member ambassador program across India to drive program awareness and sign-ups.</li>
+            <li>Partnered directly with Training and Placement Cells at 120+ universities to secure registrations at scale.</li>
+          </ul>
+        </div>
+      </article>
+      <article class="exp-row r" data-more>
+        <div class="ex-meta">
+          <p class="ex-date">Jan 2021 &ndash; Jan 2022</p>
+          <p class="ex-co"><a href="https://commudle.com" target="_blank" rel="noopener">Commudle</a></p>
+          <p class="ex-co-sub">Developer-centric platform for technical communities and their members.</p>
+        </div>
+        <div class="ex-body">
+          <h3 class="ex-role">Program Manager</h3>
+          <p class="ex-context"><strong>Challenge:</strong> Grow a developer platform with no marketing budget and no existing community. <strong>Action:</strong> Built distribution through a newsletter, university partnerships, and community programs, with zero paid acquisition. <strong>Result:</strong> 10,000+ users in six months, 51,000+ newsletter subscribers, and 120+ university partnerships.</p>
+          <div class="ex-nums">
+            <div class="ex-num"><p class="ex-num-n">10K+</p><p class="ex-num-l">Users, $0 spend</p></div>
+            <div class="ex-num"><p class="ex-num-n">51K</p><p class="ex-num-l">Newsletter subscribers</p></div>
+            <div class="ex-num"><p class="ex-num-n">120+</p><p class="ex-num-l">University partners</p></div>
+            <div class="ex-num"><p class="ex-num-n">20%+</p><p class="ex-num-l">Open rate</p></div>
+          </div>
+          <ul class="ex-bul">
+            <li>Onboarded 10,000+ users with $0 marketing spend; launched the CDN and CDN DSA sub-communities, growing the developer network to 5,100+ members across 30+ sessions with 60,000+ content reach.</li>
+            <li>Ran a <a href="https://www.commudle.com/newsletters" target="_blank" rel="noopener" class="ln">monthly newsletter</a> to 51,000+ developers at a 20%+ open rate; built 120+ university partnerships and 80+ ambassador relationships entirely through direct outreach.</li>
+            <li>Coordinated 400+ community programs and developer meetups across in-person and virtual formats.</li>
+          </ul>
+        </div>
+      </article>
+      <article class="exp-row r" data-more>
+        <div class="ex-meta">
+          <p class="ex-date">Aug 2020 &ndash; Nov 2020</p>
+          <p class="ex-co"><a href="https://scaler.com" target="_blank" rel="noopener">Scaler Academy</a></p>
+          <p class="ex-co-sub">Intensive tech education for software engineering career acceleration.</p>
+        </div>
+        <div class="ex-body">
+          <h3 class="ex-role">Community Growth Intern</h3>
+          <p class="ex-context"><strong>Challenge:</strong> Build a student community from zero to drive enrollment and brand presence for a tech education company. <strong>Action:</strong> Grew Discord, launched the Scaler Achiever Club ambassador program, and managed 300+ university representatives. <strong>Result:</strong> 250 to 80,000 Discord members in 30 days, a 150,000-student community, and 90,000 hackathon registrations.</p>
+          <div class="ex-nums">
+            <div class="ex-num"><p class="ex-num-n">250&rarr;80K</p><p class="ex-num-l">Discord, 30 days</p></div>
+            <div class="ex-num"><p class="ex-num-n">150K</p><p class="ex-num-l">Student community</p></div>
+            <div class="ex-num"><p class="ex-num-n">90K</p><p class="ex-num-l">Hackathon registrations</p></div>
+          </div>
+          <ul class="ex-bul">
+            <li>Scaled Discord from 250 to 80,000+ members in 30 days, the fastest-growing server in India at the time.</li>
+            <li>Built a student community of 150,000+ and drove 90,000 registrations for Codagon 2020.</li>
+            <li>Designed and launched the <a href="https://www.scaler.com/achiever-club/" target="_blank" rel="noopener" class="ln">Scaler Achiever Club</a>, onboarding 300+ student representatives across universities who ran 80+ hackathons and webinars.</li>
+          </ul>
+        </div>
+      </article>
+</div>
+    <div class="exp-more" id="expMoreWrap" hidden>
+      <button class="more-btn" id="expMore" type="button" aria-expanded="false" aria-controls="expList">
+        <span class="more-txt">Show 6 earlier roles</span>
+        <svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M2.5 4.5L6 8l3.5-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ VOLUNTEERING ============ -->
+<section id="vol" class="section">
+  <div class="wrap">
+    <div class="sec-head r">
+      <p class="label">Giving Back</p>
+      <h2 class="sec-h">Before it was a job title, it was just what I did</h2>
+    </div>
+    <div class="vol-grid">
+      <article class="vol-card r">
+        <p class="vol-org"><a href="https://developers.google.com/community/gdsc" target="_blank" rel="noopener">Google Developers</a></p>
+        <h3 class="vol-role">GDSC Lead &amp; Explore ML Facilitator</h3>
+        <p class="vol-yr">2020 &ndash; 2021</p>
+        <p class="vol-note">Established the first GDSC chapter at my college, ran on-campus programs like 30 Days of GCP and 30 Days of Android Development, and built a hackathon IP reaching 200+ GDSC leads across India, later handed off to Google&rsquo;s DevRel team.</p>
+      </article>
+      <article class="vol-card r">
+        <p class="vol-org"><a href="https://crowdsource.google.com" target="_blank" rel="noopener">Google Crowdsource</a></p>
+        <h3 class="vol-role">Community Influencer &amp; Program Advocate</h3>
+        <p class="vol-yr">2020 &ndash; 2021</p>
+        <p class="vol-note">Proposed a machine learning curriculum for colleges that led Google to launch the Crowdsource AI and Explore ML Facilitator Program, onboarding thousands of students and inspiring new Crowdsource clubs.</p>
+      </article>
+      <article class="vol-card r">
+        <p class="vol-org"><a href="https://mvp.microsoft.com/studentambassadors" target="_blank" rel="noopener">Microsoft</a></p>
+        <h3 class="vol-role"><a href="https://www.linkedin.com/pulse/open-source-roadshow-loveneesh-dhir/" target="_blank" rel="noopener">Student Partner, Open Source Roadshow Delhi NCR</a></h3>
+        <p class="vol-yr">2022</p>
+        <p class="vol-note">Ran 25+ campus events on Microsoft technologies like Azure, plus the Open Source Roadshow across 12 colleges in Delhi NCR that got 5,000+ students started with Git and GitHub.</p>
+      </article>
+      <article class="vol-card r">
+        <p class="vol-org"><a href="https://mlh.io" target="_blank" rel="noopener">Major League Hacking</a></p>
+        <h3 class="vol-role">Summer League Mentor</h3>
+        <p class="vol-yr">2019 &ndash; 2022</p>
+        <p class="vol-note">Mentored student teams across MLH&rsquo;s Summer League hackathon series.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ============ EDUCATION ============ -->
+<section id="edu" class="section">
+  <div class="wrap">
+    <div class="sec-head r">
+      <p class="label">Education</p>
+      <h2 class="sec-h">Where the thinking started</h2>
+    </div>
+    <div class="edu-grid">
+      <article class="vol-card r">
+        <p class="vol-org">MBA</p>
+        <h3 class="vol-role">Liverpool John Moores University</h3>
+        <p class="vol-note">Dissertation on how online brand community engagement drives customer loyalty among Gen Z consumers in India.</p>
+      </article>
+      <article class="vol-card r">
+        <p class="vol-org">B.Tech, Computer Science</p>
+        <h3 class="vol-role">Dr. APJ Abdul Kalam Technical University</h3>
+        <p class="vol-note">Led campus chapters for the Entrepreneurship Cell, Google Developers Group, and IEEE; ran 25+ workshops on open-source, ML, web, and design; selected for Microsoft, GitHub, and MLH student ambassador programs.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ============ REFERENCES ============ -->
+<section id="praise" class="section">
+  <div class="wrap">
+    <div class="sec-head r">
+      <p class="label">References</p>
+      <h2 class="sec-h">What the people who managed the work say</h2>
+      <p class="sec-sub">Excerpts from LinkedIn recommendations. Three of the four managed me directly.</p>
+    </div>
+    <div class="praise-grid">
+      <figure class="praise-card r">
+        <blockquote class="pq">Loveneesh is one of the most impactful members of Union&rsquo;s journey. As the BD lead, he consistently creates opportunities from scratch, structures complex partnerships, and operates with true ownership and initiative.</blockquote>
+        <figcaption class="pa">
+          <span class="pa-mark" aria-hidden="true">EB</span>
+          <span class="pa-meta">
+            <span class="pa-name">Emir Beriker</span>
+            <span class="pa-role">Strategic Partnerships, Chainlink</span>
+            <span class="pa-rel">Direct manager, Union Labs</span>
+          </span>
+        </figcaption>
+      </figure>
+      <figure class="praise-card r">
+        <blockquote class="pq">Loveneesh is a rare talent who combines technical evangelism with a deep understanding of community dynamics. He took a simple idea and built it into a regional powerhouse, personally leading workshops across APAC that empowered thousands of learners.</blockquote>
+        <figcaption class="pa">
+          <span class="pa-mark" aria-hidden="true">NR</span>
+          <span class="pa-meta">
+            <span class="pa-name">Nikhil Madhusudan Raichur</span>
+            <span class="pa-role">Technical Program Manager, Google Search</span>
+            <span class="pa-rel">Program lead, Google Crowdsource</span>
+          </span>
+        </figcaption>
+      </figure>
+      <figure class="praise-card r">
+        <blockquote class="pq">Loveneesh joined us as a leader for communities and took the end-to-end care of building the ecosystem of Commudle Developer Network from scratch to sustainability. I still reach out to him to tap into his wide network.</blockquote>
+        <figcaption class="pa">
+          <span class="pa-mark" aria-hidden="true">AG</span>
+          <span class="pa-meta">
+            <span class="pa-name">Arpan Garg</span>
+            <span class="pa-role">Founder, Commudle</span>
+            <span class="pa-rel">Direct manager, Commudle</span>
+          </span>
+        </figcaption>
+      </figure>
+      <figure class="praise-card r">
+        <blockquote class="pq">Loveneesh excelled as a community builder and ecosystem developer. He demonstrated a unique talent for engaging developers, users, and stakeholders to strengthen our ecosystem.</blockquote>
+        <figcaption class="pa">
+          <span class="pa-mark" aria-hidden="true">SN</span>
+          <span class="pa-meta">
+            <span class="pa-name">Shahzad Nathani</span>
+            <span class="pa-role">Serial founder and CXO, ex-Shardeum</span>
+            <span class="pa-rel">Direct manager, Shardeum</span>
+          </span>
+        </figcaption>
+      </figure>
+    </div>
+    <div class="praise-more r">
+      <a class="more-btn" href="https://www.linkedin.com/in/loveneeshdhir/" target="_blank" rel="noopener">
+        More recommendations on LinkedIn <span aria-hidden="true">&nearr;</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CONTACT ============ -->
+<section id="contact" aria-label="Contact">
+  <div class="ct-inner">
+    <p class="ct-label r"><span class="dot" aria-hidden="true"></span> Open to conversations</p>
+    <h2 class="ct-h r">What are you building?</h2>
+    <p class="ct-sub r">If you&rsquo;re building something ambitious and the community, growth, or ecosystem motion isn&rsquo;t where it needs to be, that&rsquo;s the conversation worth having.</p>
+    <div class="ct-btns r">
+      <a href="mailto:dhirloveneesh@gmail.com?subject=Role%20conversation" class="ct-primary">dhirloveneesh@gmail.com <span class="ar" aria-hidden="true">&rarr;</span></a>
+      <a href="https://www.linkedin.com/in/loveneeshdhir/" target="_blank" rel="noopener" class="ct-secondary">LinkedIn <span aria-hidden="true">&nearr;</span></a>
+    </div>
+    <p class="ct-note r">Based in Delhi, India (GMT+5:30). I usually reply within a day.</p>
+  </div>
+</section>
+
+</main>
+
+<!-- ============ FOOTER ============ -->
+<footer>
+  <div class="ft-grid">
+    <div class="ft-brand-col">
+      <p class="ft-brand">Loveneesh Dhir</p>
+      <p class="ft-tag">Community, growth, and partnerships infrastructure for technology companies. Six years, four companies, 30+ countries.</p>
+    </div>
+    <div>
+      <h2 class="ft-h">Navigate</h2>
+      <div class="ft-list">
+        <a href="#work">Selected Work</a>
+        <a href="#approach">Approach</a>
+        <a href="#about">About</a>
+        <a href="#exp">Experience</a>
+        <a href="#praise">References</a>
+        <a href="#contact">Contact</a>
+      </div>
+    </div>
+    <div>
+      <h2 class="ft-h">Elsewhere</h2>
+      <div class="ft-list">
+        <a href="mailto:dhirloveneesh@gmail.com">Email</a>
+        <a href="https://www.linkedin.com/in/loveneeshdhir/" target="_blank" rel="noopener">LinkedIn</a>
+        <a href="https://x.com/LoveneeshDhir" target="_blank" rel="noopener">X / Twitter</a>
+        <a href="https://t.me/loveneeshdhir" target="_blank" rel="noopener">Telegram</a>
+        <a href="https://github.com/loveneeshdhir" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </div>
+  </div>
+  <div class="ft-bot">
+    <span>Delhi, India &middot; GMT+5:30</span>
+    <span>&copy; 2026 Loveneesh Dhir</span>
+  </div>
+</footer>
+
+<a href="#hero" class="fab" aria-label="Back to top">
+  <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 13V3M3.5 7.5L8 3l4.5 4.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+</a>
+
+<script>
+(function(){
+  'use strict';
+  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var doc = document.documentElement;
+
+  /* ---- scroll: progress bar, nav state, fab ---- */
+  var bar = document.getElementById('progress');
+  var ticking = false;
+  function onScroll(){
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(function(){
+      var y = window.scrollY;
+      var max = doc.scrollHeight - window.innerHeight;
+      bar.style.transform = 'scaleX(' + (max > 0 ? Math.min(y / max, 1) : 0) + ')';
+      document.body.classList.toggle('scrolled', y > 20);
+      document.body.classList.toggle('deep', y > window.innerHeight * 0.7);
+      ticking = false;
+    });
+  }
+  addEventListener('scroll', onScroll, {passive:true});
+  addEventListener('resize', onScroll, {passive:true});
+  onScroll();
+
+  /* ---- mobile menu ---- */
+  var toggle = document.getElementById('navToggle');
+  var menu = document.getElementById('menu');
+  /* everything the open menu covers is made inert, so keyboard and screen-reader
+     focus cannot fall through to the page behind the overlay */
+  /* NB: body > footer, because a second <footer> lives inside the pull-quote's blockquote */
+  var behind = [document.getElementById('main'), document.querySelector('body > footer'),
+                document.querySelector('.fab'), document.querySelector('.skip')].filter(Boolean);
+
+  function setMenu(open, moveFocus){
+    document.body.classList.toggle('menu-open', open);
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+    menu.setAttribute('aria-hidden', open ? 'false' : 'true');
+    behind.forEach(function(el){ el.inert = open; });
+    if (!moveFocus) return;
+    if (open){
+      /* the panel is still visibility:hidden this frame and cannot take focus,
+         so wait for the transition (with a timeout in case it never fires) */
+      var done = false;
+      var focusFirst = function(){
+        if (done) return;
+        done = true;
+        menu.removeEventListener('transitionend', focusFirst);
+        var first = menu.querySelector('a,button');
+        if (first) first.focus();
+      };
+      menu.addEventListener('transitionend', focusFirst);
+      setTimeout(focusFirst, 320);
+    } else {
+      toggle.focus();
+    }
+  }
+  setMenu(false, false);
+  toggle.addEventListener('click', function(){
+    setMenu(!document.body.classList.contains('menu-open'), true);
+  });
+  menu.addEventListener('click', function(e){
+    if (e.target.closest('a')) setMenu(false, false);
+  });
+  addEventListener('keydown', function(e){
+    if (e.key === 'Escape' && document.body.classList.contains('menu-open')) setMenu(false, true);
+  });
+  var mq = matchMedia('(min-width: 1081px)');
+  mq.addEventListener('change', function(e){ if (e.matches) setMenu(false, false); });
+
+  /* ---- experience progressive disclosure ---- */
+  var more = document.getElementById('expMore');
+  var moreWrap = document.getElementById('expMoreWrap');
+  var extra = Array.prototype.slice.call(document.querySelectorAll('.exp-row[data-more]'));
+  if (more && extra.length){
+    moreWrap.hidden = false;
+    extra.forEach(function(el){ el.hidden = true; });
+    more.addEventListener('click', function(){
+      var open = more.getAttribute('aria-expanded') === 'true';
+      more.setAttribute('aria-expanded', open ? 'false' : 'true');
+      more.querySelector('.more-txt').textContent = open ? 'Show 6 earlier roles' : 'Show fewer roles';
+      extra.forEach(function(el){
+        el.hidden = open;
+        if (!open) el.classList.add('in');
+      });
+      if (open) moreWrap.scrollIntoView({block:'center', behavior: reduce ? 'auto' : 'smooth'});
+    });
+  }
+
+  /* ---- scroll reveal ---- */
+  if (reduce){
+    document.querySelectorAll('.r').forEach(function(el){ el.classList.add('in'); });
+  } else {
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e, i){
+        if (!e.isIntersecting) return;
+        e.target.style.transitionDelay = (i % 4) * 70 + 'ms';
+        e.target.classList.add('in');
+        io.unobserve(e.target);
+      });
+    }, {threshold:.06, rootMargin:'0px 0px -40px 0px'});
+    document.querySelectorAll('.r').forEach(function(el){ io.observe(el); });
+  }
+
+  /* ---- stat count-up ---- */
+  var nums = document.querySelectorAll('.stat-num[data-count]');
+  function countUp(el){
+    var raw = el.getAttribute('data-count') || '';
+    var n = parseFloat(raw.replace(/,/g,'').replace(/[^0-9.]/g,''));
+    var suffix = raw.replace(/[0-9,.]/g,'');
+    if (isNaN(n)) return;
+    var dur = 1500, t0 = performance.now();
+    function fmt(v){ return v >= 1000 ? Math.round(v).toLocaleString('en-US') : Math.round(v).toString(); }
+    (function tick(now){
+      var p = Math.min((now - t0) / dur, 1);
+      el.textContent = fmt((1 - Math.pow(1 - p, 4)) * n) + suffix;
+      if (p < 1) requestAnimationFrame(tick);
+      else el.textContent = fmt(n) + suffix;
+    })(t0);
+  }
+  if (!reduce && nums.length){
+    var sio = new IntersectionObserver(function(entries){
+      if (entries[0].isIntersecting){
+        nums.forEach(countUp);
+        sio.disconnect();
+      }
+    }, {threshold:.35});
+    sio.observe(document.getElementById('stats'));
+  }
+
+  /* ---- active nav link: deterministic, recomputed on scroll ---- */
+  var links = Array.prototype.slice.call(document.querySelectorAll('.nav-links a'));
+  var targets = links
+    .map(function(a){ return {link:a, el:document.querySelector(a.getAttribute('href'))}; })
+    .filter(function(t){ return t.el; });
+
+  function syncNav(){
+    var line = window.scrollY + window.innerHeight * 0.35;
+    var active = null;
+    targets.forEach(function(t){
+      if (t.el.getBoundingClientRect().top + window.scrollY <= line) active = t.link;
+    });
+    /* pin the last link once the page is bottomed out */
+    if (window.innerHeight + window.scrollY >= doc.scrollHeight - 4) active = targets[targets.length - 1].link;
+    links.forEach(function(a){
+      if (a === active) a.setAttribute('aria-current','true');
+      else a.removeAttribute('aria-current');
+    });
+  }
+  if (targets.length){
+    var navTick = false;
+    addEventListener('scroll', function(){
+      if (navTick) return;
+      navTick = true;
+      requestAnimationFrame(function(){ syncNav(); navTick = false; });
+    }, {passive:true});
+    addEventListener('resize', syncNav, {passive:true});
+    syncNav();
+  }
+})();
+</script>
+</body>
+</html>'''
+
+html = (TPL
+    .replace('%%AVATAR%%',   AVATAR)
+    .replace('%%FAVICON%%',  FAVICON)
+    .replace('%%F_SANS%%',   F_SANS)
+    .replace('%%F_MONO%%',   F_MONO)
+    .replace('%%HEADSHOT%%', HEADSHOT)
+    .replace('%%HERO%%',     HERO)
+    .replace('%%PORTRAIT%%', PORTRAIT)
+    .replace('%%G1%%',       G1)
+    .replace('%%G2%%',       G2)
+    .replace('%%G3%%',       G3))
+
+with open(OUTPUT, 'w', encoding='utf-8') as f:
+    f.write(html)
+print('Written {:,} chars ({:.0f} KB) to {}'.format(len(html), len(html.encode())/1024, OUTPUT))
