@@ -1,0 +1,5 @@
+# macOS
+.DS_Store
+
+# Artifact-preview build only; the deployed site is index.html
+standalone.html

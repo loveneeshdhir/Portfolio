@@ -3,14 +3,36 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Loveneesh Dhir | Community, Growth &amp; Partnerships</title>
-<meta name="description" content="Loveneesh Dhir builds community infrastructure, developer programs, and strategic partnerships for technology companies. 450,000 users in 72 hours. 140+ contributors across 25+ countries.">
+<title>Loveneesh Dhir | Growth, Partnerships &amp; Ecosystem</title>
+<meta name="description" content="Loveneesh Dhir builds growth infrastructure, strategic partnerships, and developer programs for technology companies. 450,000 users in 72 hours. 140+ contributors across 25+ countries.">
 <meta name="author" content="Loveneesh Dhir">
-<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#14110F" media="(prefers-color-scheme: dark)">
-<meta property="og:title" content="Loveneesh Dhir | Community, Growth &amp; Partnerships">
-<meta property="og:description" content="Six years, four companies. 450,000 users in 72 hours. 140+ contributors across 25+ countries. One motion.">
+<meta name="theme-color" content="#14110F" id="themeColor">
+<script>
+/* Runs synchronously before first paint, so there is no flash of the wrong
+   theme. Site defaults to dark regardless of OS preference; a saved manual
+   choice (from the toggle in the nav) always wins on return visits. */
+(function(){
+  var t = 'dark';
+  try {
+    var saved = localStorage.getItem('theme');
+    if (saved === 'light' || saved === 'dark') t = saved;
+  } catch(e){}
+  document.documentElement.setAttribute('data-theme', t);
+})();
+</script>
+<meta property="og:title" content="Loveneesh Dhir | Growth, Partnerships &amp; Ecosystem">
+<meta property="og:description" content="Six years, four companies taken from zero. 450,000 users in 72 hours. 140+ contributors across 25+ countries. 400+ ecosystem and partner relationships including Aptos, Polygon, and OKX.">
 <meta property="og:type" content="profile">
+<link rel="canonical" href="https://loveneeshdhir.com/">
+<meta property="og:url" content="https://loveneeshdhir.com/">
+<meta property="og:site_name" content="Loveneesh Dhir">
+<meta property="og:image" content="https://loveneeshdhir.com/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Loveneesh Dhir speaking on the main stage at FIL Bangalore">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@LoveneeshDhir">
+<meta name="twitter:creator" content="@LoveneeshDhir">
 <link rel="icon" type="image/png" sizes="64x64" href="favicon.png">
 <link rel="apple-touch-icon" href="favicon.png">
 <script type="application/ld+json">
@@ -18,11 +40,13 @@
   "@context":"https://schema.org",
   "@type":"Person",
   "name":"Loveneesh Dhir",
-  "jobTitle":"Head of Community, Ecosystem & Growth",
+  "url":"https://loveneeshdhir.com/",
+  "image":"https://loveneeshdhir.com/og-image.jpg",
+  "jobTitle":"Head of Growth, Ecosystem & Partnerships",
   "description":"Builds community infrastructure, developer programs, and strategic partnerships for technology companies.",
   "email":"mailto:dhirloveneesh@gmail.com",
   "address":{"@type":"PostalAddress","addressLocality":"Delhi","addressCountry":"IN"},
-  "knowsAbout":["Community Building","Ecosystem Growth","Go-to-Market Strategy","Business Development","Partnerships","Developer Programs","Community-Led Growth","User Acquisition"],
+  "knowsAbout":["Go-to-Market Strategy","Business Development","Ecosystem Growth","Partnerships","User Acquisition","Community-Led Growth","Developer Programs","Community Building"],
   "sameAs":[
     "https://www.linkedin.com/in/loveneeshdhir/",
     "https://x.com/LoveneeshDhir",
@@ -107,8 +131,8 @@
     --paper:#14110F;
     --paper-2:#1B1714;
     --paper-3:#251F1A;
-    --line:#2C2621;
-    --line-2:#3D352E;
+    --line:#504640;
+    --line-2:#645850;
     --ink:#F7F3EC;
     --ink-2:#D8D0C7;
     --ink-3:#9A9089;
@@ -127,7 +151,7 @@
 :root[data-theme="dark"]{
   color-scheme:dark;
   --paper:#14110F; --paper-2:#1B1714; --paper-3:#251F1A;
-  --line:#2C2621; --line-2:#3D352E;
+  --line:#504640; --line-2:#645850;
   --ink:#F7F3EC; --ink-2:#D8D0C7; --ink-3:#9A9089;
   --rust:#F0703C; --rust-2:#F5936A; --rust-wash:#251912;
   --shadow-sm:0 1px 2px rgba(0,0,0,.4);
@@ -151,6 +175,17 @@
 
 /* ============ RESET ============ */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+/* Real bug, verified: toggling data-theme changes --rust (and other tokens)
+   for 100+ elements at once. Any of them with transition:color/background/
+   border-color can commit the WRONG final computed color and get stuck
+   there indefinitely (confirmed reproducible: waited 2s+ on the live toggle,
+   never self-corrected; only forcing transition:none fixed it). Root cause
+   looks like the engine mishandling many simultaneous transitions sourced
+   from one custom-property change. Fix: suppress all color/background/
+   border transitions for the one frame the theme actually flips (JS adds
+   this class right before, removes it right after via rAF), then normal
+   hover/interaction transitions resume unaffected. */
+.theme-switching,.theme-switching *{transition:none!important}
 /* the UA's [hidden]{display:none} loses to any author display rule, so the
    experience rows (display:grid) ignored their hidden attribute entirely */
 [hidden]{display:none!important}
@@ -205,7 +240,18 @@ main:focus{outline:none}
 
 /* ============ LAYOUT ============ */
 .wrap{max-width:calc(var(--w) + 5rem);margin:0 auto;padding:0 2.5rem}
-.section{padding:var(--s11) 0;border-top:1px solid var(--line)}
+.section{padding:var(--s11) 0;border-top:1px solid var(--line);position:relative;overflow:hidden}
+.section>.wrap{position:relative;z-index:1}
+/* faint chapter numeral, watermark-style, behind the section's real content.
+   color-mix against --ink (not a hardcoded rgba white) so it stays proportionally
+   faint in both themes instead of vanishing in light mode or blowing out in dark. */
+.sec-num{
+  position:absolute;top:var(--s8);right:var(--s7);
+  font-family:var(--f-mono);font-size:clamp(64px,9vw,150px);
+  font-weight:700;line-height:1;letter-spacing:-.04em;
+  color:color-mix(in srgb,var(--ink) 6%,transparent);
+  pointer-events:none;user-select:none;z-index:0;
+}
 .sec-head{max-width:62ch;margin-bottom:var(--s8)}
 .sec-head .label{
   display:flex;align-items:center;gap:.7rem;margin-bottom:var(--s3);
@@ -285,6 +331,17 @@ body.scrolled #nav{border-bottom-color:var(--line)}
   transition:background .2s,transform .18s var(--ease);
 }
 .nav-cta:hover{background:var(--rust);color:#fff;transform:translateY(-1px)}
+.theme-toggle{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:38px;height:38px;flex-shrink:0;
+  border-radius:var(--r-sm);color:var(--ink-3);
+  transition:background .2s,color .2s;
+}
+.theme-toggle:hover{background:var(--paper-3);color:var(--ink)}
+.theme-toggle svg{width:18px;height:18px;stroke:currentColor}
+.theme-toggle .ico-sun{display:none}
+:root[data-theme="dark"] .theme-toggle .ico-sun{display:block}
+:root[data-theme="dark"] .theme-toggle .ico-moon{display:none}
 .nav-toggle{
   display:none;
   width:44px;height:44px;margin-right:-.5rem;
@@ -314,10 +371,13 @@ body.menu-open .nav-toggle span::after{top:0;transform:rotate(-45deg)}
   padding:var(--s6) max(1.25rem,2.5vw) var(--s8);
   display:flex;flex-direction:column;
   opacity:0;visibility:hidden;transform:translateY(-8px);
-  transition:opacity .26s var(--ease),transform .26s var(--ease),visibility .26s;
+  transition:opacity .26s var(--ease),transform .26s var(--ease),visibility 0s linear .26s;
   overflow-y:auto;
 }
-body.menu-open #menu{opacity:1;visibility:visible;transform:none}
+body.menu-open #menu{
+  opacity:1;visibility:visible;transform:none;
+  transition:opacity .26s var(--ease),transform .26s var(--ease),visibility 0s;
+}
 #menu ul{display:flex;flex-direction:column}
 #menu li{border-bottom:1px solid var(--line)}
 #menu a.m-link{
@@ -503,22 +563,58 @@ body.menu-open #menu{opacity:1;visibility:visible;transform:none}
 
 /* ============ SELECTED WORK ============ */
 #work{background:var(--paper-2);border-top:1px solid var(--line)}
-.work-list{display:flex;flex-direction:column;margin-top:var(--s7)}
-.work-row{
-  display:grid;grid-template-columns:200px minmax(0,1fr);gap:var(--s8);
-  padding:var(--s8) 0;
-  border-top:1px solid var(--line);
-  transition:border-top-color .35s;
+/* ---- work: accordion, every headline always visible, one body expanded ----
+   Native <details>/<summary>: keyboard access and correct semantics come
+   free. Everything (metric, tag, headline, body) lives inside <summary> so
+   nothing is hidden by the browser's own open/closed mechanics; the [open]
+   attribute only drives our own CSS (line-clamp on the body, chevron
+   rotation). name="work-acc" makes the four mutually exclusive in browsers
+   that support it (Chrome/Firefox/Safari, all current) and degrades to
+   harmless independent accordions elsewhere, never breaks. */
+.work-list{display:flex;flex-direction:column;gap:.75rem;margin-top:var(--s7)}
+.work-item{
+  border:1px solid var(--line);border-radius:var(--r-lg);
+  background:var(--paper);overflow:hidden;
+  transition:border-color .2s;
 }
-.work-row:hover{border-top-color:var(--rust)}
+.work-item[open]{border-color:var(--line-2)}
+.work-item summary{
+  display:grid;grid-template-columns:200px minmax(0,1fr) 28px;gap:var(--s6);
+  align-items:start;padding:var(--s6);
+  cursor:pointer;list-style:none;
+}
+.w-main{min-width:0}
+.work-item summary::-webkit-details-marker{display:none}
+.work-item summary:hover{background:var(--paper-2)}
 .w-metric{position:sticky;top:calc(var(--nav-h) + 2rem);align-self:start}
+/* no transition on transform here: the native name= grouping toggles two
+   <details> elements' [open] state in one tick, and animating transform
+   across that simultaneous change made browsers cross-attribute which
+   chevron was rotating to which element (verified: removing the transition
+   fixes it). Color can still transition safely. */
+.w-chev{
+  display:grid;place-items:center;width:28px;height:28px;margin-top:.15rem;
+  border:1px solid var(--line-2);border-radius:50%;color:var(--ink-3);
+  transition:color .2s;
+}
+.w-chev svg{width:11px;height:11px}
+.work-item[open] .w-chev{transform:rotate(45deg);color:var(--rust)}
+.work-item .w-body{
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;
+  line-clamp:2;overflow:hidden;
+}
+.work-item[open] .w-body{
+  -webkit-line-clamp:unset;line-clamp:unset;overflow:visible;
+  animation:workReveal .35s var(--ease);
+}
+@keyframes workReveal{from{opacity:.5}to{opacity:1}}
 .w-n{
   font-size:clamp(2.75rem,5.2vw,4.5rem);font-weight:800;font-stretch:96%;
   letter-spacing:-.045em;line-height:.95;color:var(--ink);
   font-variant-numeric:tabular-nums;
   transition:color .35s;
 }
-.work-row:hover .w-n{color:var(--rust)}
+.work-item summary:hover .w-n{color:var(--rust)}
 .w-unit{
   font-size:var(--t-xs);font-weight:700;font-stretch:86%;
   letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3);
@@ -640,28 +736,6 @@ body.menu-open #menu{opacity:1;visibility:visible;transform:none}
   letter-spacing:-.025em;font-variant-numeric:tabular-nums;flex-shrink:0;
 }
 
-/* ============ QUOTE ============ */
-#qb{
-  background:var(--band);
-  background-image:radial-gradient(ellipse 70% 90% at 50% 118%,var(--band-2),transparent);
-  padding:var(--s12) 2.5rem;text-align:center;
-}
-.qb-inner{max-width:720px;margin:0 auto}
-.qb-mark{
-  display:block;width:26px;height:2px;border-radius:2px;
-  background:var(--band-accent);margin:0 auto var(--s6);
-}
-.qb-q{
-  font-size:clamp(1.5rem,3.4vw,2.4rem);
-  font-weight:700;font-stretch:106%;letter-spacing:-.032em;
-  line-height:1.24;color:var(--band-ink);margin-bottom:var(--s5);
-  text-wrap:balance;
-}
-.qb-by{
-  font-size:var(--t-xs);font-weight:700;font-stretch:86%;
-  letter-spacing:.18em;text-transform:uppercase;color:var(--band-ink-2);
-}
-
 /* ============ EXPERIENCE ============ */
 .exp-list{display:flex;flex-direction:column;margin-top:var(--s7)}
 .exp-row{
@@ -675,11 +749,6 @@ body.menu-open #menu{opacity:1;visibility:visible;transform:none}
   letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);
   margin-bottom:.8rem;
 }
-.ex-now{
-  display:inline-flex;align-items:center;gap:.35rem;
-  color:var(--rust-2);font-weight:700;
-}
-.ex-now::before{content:'';width:5px;height:5px;border-radius:50%;background:#18A957}
 .ex-co{
   font-size:var(--t-lg);font-weight:700;font-stretch:100%;
   letter-spacing:-.018em;color:var(--ink);margin-bottom:.35rem;line-height:1.3;
@@ -773,7 +842,7 @@ body.menu-open #menu{opacity:1;visibility:visible;transform:none}
 }
 
 /* ============ EDUCATION ============ */
-#edu{border-top:1px solid var(--line)}
+.sub-label{margin-top:var(--s7);padding-top:var(--s6);border-top:1px solid var(--line)}
 .edu-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem}
 
 /* ============ REFERENCES ============ */
@@ -899,9 +968,12 @@ footer{background:var(--band);border-top:1px solid var(--band-line);padding:var(
   background:var(--paper);color:var(--ink);
   border:1px solid var(--line-2);box-shadow:var(--shadow-md);
   opacity:0;visibility:hidden;transform:translateY(10px);
-  transition:opacity .3s,transform .3s var(--ease),visibility .3s,border-color .2s,color .2s;
+  transition:opacity .3s,transform .3s var(--ease),visibility 0s linear .3s,border-color .2s,color .2s;
 }
-body.deep .fab{opacity:1;visibility:visible;transform:none}
+body.deep .fab{
+  opacity:1;visibility:visible;transform:none;
+  transition:opacity .3s,transform .3s var(--ease),visibility 0s,border-color .2s,color .2s;
+}
 .fab:hover{color:var(--rust);border-color:var(--rust)}
 
 /* ============ MOTION ============ */
@@ -927,6 +999,8 @@ body.deep .fab{opacity:1;visibility:visible;transform:none}
   .nav-toggle{display:flex}
   .nav-ghost{display:none}
   .nav-cta{min-height:44px}
+  /* match the 44px touch target the hamburger and CTA already use */
+  .theme-toggle{width:44px;height:44px}
   .skills-grid{grid-template-columns:repeat(2,1fr)}
   .cap-grid{grid-template-columns:1fr}
   .cap-card{padding:var(--s6) var(--s5)}
@@ -937,8 +1011,15 @@ body.deep .fab{opacity:1;visibility:visible;transform:none}
   .about-grid{grid-template-columns:1fr;gap:var(--s7)}
   .about-aside{position:static;display:grid;grid-template-columns:180px minmax(0,1fr);gap:var(--s6);align-items:center}
   .portrait{margin:0;width:100%}
-  .exp-row,.work-row{grid-template-columns:1fr;gap:var(--s4)}
-  .w-metric{position:static;display:flex;align-items:baseline;gap:.75rem}
+  .exp-row{grid-template-columns:1fr;gap:var(--s4)}
+  .work-item summary{
+    grid-template-columns:1fr 28px;
+    grid-template-areas:"metric chev" "main main";
+    gap:.5rem var(--s6);
+  }
+  .w-metric{grid-area:metric;position:static;display:flex;align-items:baseline;gap:.75rem}
+  .w-main{grid-area:main}
+  .w-chev{grid-area:chev}
   .w-unit{margin-top:0}
   .ex-meta{padding-bottom:var(--s4);border-bottom:1px solid var(--line)}
   .vol-grid,.edu-grid{grid-template-columns:repeat(2,1fr)}
@@ -973,7 +1054,7 @@ body.deep .fab{opacity:1;visibility:visible;transform:none}
   .portrait{width:min(190px,55%)}
   .aside-stats{width:100%}
   .stat-item{padding:var(--s6) .75rem}
-  #qb,#contact{padding-left:1.25rem;padding-right:1.25rem}
+  #contact{padding-left:1.25rem;padding-right:1.25rem}
   footer{padding-left:1.25rem;padding-right:1.25rem}
   .ct-btns{flex-direction:column}
   .ct-btns>a{width:100%}
@@ -986,7 +1067,10 @@ body.deep .fab{opacity:1;visibility:visible;transform:none}
 /* ============ PRINT / RESUME ============ */
 @media print{
   @page{margin:14mm 13mm}
-  :root{
+  /* :root,:root[data-theme] matches the specificity of :root[data-theme="dark"/"light"]
+     (0,2,0 either way) and, being declared later, wins the tie, so the print
+     palette applies no matter which theme a visitor had toggled on screen. */
+  :root,:root[data-theme]{
     --paper:#fff;--paper-2:#fff;--paper-3:#fff;
     --ink:#000;--ink-2:#1a1a1a;--ink-3:#444;
     --line:#ccc;--line-2:#bbb;--rust:#8a2f0f;--rust-2:#8a2f0f;--rust-wash:#fff;
@@ -995,10 +1079,10 @@ body.deep .fab{opacity:1;visibility:visible;transform:none}
   }
   body{background:#fff;color:#000;font-size:9.6pt;line-height:1.45}
   #nav,#menu,#gallery,.fab,.hero-r,.hero-logos,.hero-btns,
-  #qb,.g-cap,.exp-more,#praise,.portrait,.ct-btns,.sec-head .label::after{display:none!important}
+  .g-cap,.exp-more,#praise,.portrait,.ct-btns,.sec-head .label::after,.sec-num{display:none!important}
   .r{opacity:1!important;transform:none!important}
   .exp-row[hidden]{display:grid!important}
-  .section,#work,#skills,#vol,#edu{padding:.8rem 0;border-top:1px solid #ddd;background:#fff!important}
+  .section,#work,#skills,#vol{padding:.8rem 0;border-top:1px solid #ddd;background:#fff!important}
   .wrap{padding:0;max-width:100%}
   #hero{display:block;min-height:0;border:none;page-break-after:avoid}
   .hero-l{padding:0;display:block}
@@ -1020,7 +1104,14 @@ body.deep .fab{opacity:1;visibility:visible;transform:none}
   .sec-h{font-size:13pt}
   .sec-sub{display:none}
   .sec-head{margin-bottom:.6rem}
-  .work-row,.exp-row{
+  /* the accordion's collapsed/expanded state is a screen-only affordance;
+     print always shows all four case studies in full, regardless of which
+     one was left open on screen */
+  .work-item{border:none;border-top:1px solid #ddd;border-radius:0}
+  .work-item:first-child{border-top:none}
+  .w-chev{display:none}
+  .work-item .w-body{-webkit-line-clamp:unset!important;line-clamp:unset!important;overflow:visible!important}
+  .work-item summary,.exp-row{
     grid-template-columns:150px 1fr;gap:1rem;padding:.65rem 0;
     page-break-inside:avoid;break-inside:avoid;
   }
@@ -1080,6 +1171,10 @@ body.deep .fab{opacity:1;visibility:visible;transform:none}
   <div class="nav-act">
     <a class="nav-ghost" href="https://drive.google.com/drive/folders/1i2fP6Q9tuIfIX8euCvJw0R93bzSoEtzG?usp=sharing" target="_blank" rel="noopener">R&eacute;sum&eacute; <span aria-hidden="true">&nearr;</span></a>
     <a href="mailto:dhirloveneesh@gmail.com?subject=Role%20conversation" class="nav-cta">Let&rsquo;s talk <span aria-hidden="true">&rarr;</span></a>
+    <button class="theme-toggle" id="themeToggle" type="button" aria-label="Switch to light theme">
+      <svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.4M12 19.1v2.4M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.9 19.1l1.7-1.7M17.4 6.6l1.7-1.7"/></svg>
+      <svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.8 6.8 0 0 0 10.5 10.5Z"/></svg>
+    </button>
     <button class="nav-toggle" id="navToggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="menu"><span></span></button>
   </div>
   <div id="progress" aria-hidden="true"></div>
@@ -1109,10 +1204,10 @@ body.deep .fab{opacity:1;visibility:visible;transform:none}
 <!-- ============ HERO ============ -->
 <section id="hero" aria-label="Introduction">
   <div class="hero-l">
-    <h1 class="hero-name">Loveneesh<br>Dhir</h1>
-    <p class="hero-title"><span>Community, Growth &amp; Partnerships</span></p>
-    <p class="hero-thesis">Most companies have the product figured out. The community, the developer programs, the partnerships: <strong>that part usually lags.</strong> That&rsquo;s what I build.</p>
-    <p class="hero-proof">Six years, four companies, always from zero. <b>450,000 users in 72 hours</b> with no paid spend. <b>140+ contributors</b> running independently across <b>25+ countries</b>. Partnerships with Aptos, Polygon, and OKX.</p>
+    <h1 class="hero-name">Loveneesh <br>Dhir</h1>
+    <p class="hero-title"><span>Growth, Partnerships &amp; Ecosystem</span></p>
+    <p class="hero-thesis">Most companies have the product figured out. The growth motion, the partnerships, the developer programs: <strong>that part usually lags.</strong> That&rsquo;s what I build.</p>
+    <p class="hero-proof">Six years. Four companies taken from zero to scale. <b>450,000 users in 72 hours</b> with no paid spend. <b>140+ contributors</b> running independently across <b>25+ countries</b>. <b>400+ ecosystem and partner relationships</b>, including Aptos, Polygon, and OKX.</p>
     <div class="hero-btns">
       <a href="#work" class="btn btn-primary">See the work <span class="ar" aria-hidden="true">&rarr;</span></a>
       <a class="btn btn-secondary" href="https://drive.google.com/drive/folders/1i2fP6Q9tuIfIX8euCvJw0R93bzSoEtzG?usp=sharing" target="_blank" rel="noopener">Download r&eacute;sum&eacute; <span aria-hidden="true">&nearr;</span></a>
@@ -1175,61 +1270,74 @@ body.deep .fab{opacity:1;visibility:visible;transform:none}
 
 <!-- ============ SELECTED WORK ============ -->
 <section id="work" class="section">
+  <div class="sec-num" aria-hidden="true">01</div>
   <div class="wrap">
     <div class="sec-head r">
       <p class="label">Selected Work</p>
       <h2 class="sec-h">Four problems that had no playbook</h2>
       <p class="sec-sub">Each of these started without a team, without a budget, or without precedent. The numbers are the outcome. The method is the point.</p>
     </div>
-    <div class="work-list">
+    <div class="work-list r">
 
-      <article class="work-row r">
-        <div class="w-metric">
-          <p class="w-n">5,200</p>
-          <p class="w-unit">participants<br>14 time zones</p>
-        </div>
-        <div>
-          <p class="w-tag"><a href="https://union.build" target="_blank" rel="noopener">Union Labs</a><span class="sep"></span>2024</p>
-          <h3 class="w-title">Coordinating 5,200 strangers through a process that could not be redone</h3>
-          <p class="w-body">A zero-knowledge trusted setup ceremony required 5,200+ participants across 14 time zones to take specific actions in a precise sequence, collectively generating the cryptographic parameters the network&rsquo;s proofs depend on, a process that could not be restarted once begun. The hard part was never technical. It was getting thousands of independent people, in dozens of countries, through a process most had never seen, with zero tolerance for incomplete participation. We gamified the funnel, made enrollment self-service, and reached full completion with no manual intervention. No playbook existed, so we wrote one.</p>
-        </div>
-      </article>
+      <details class="work-item" name="work-acc" open>
+        <summary>
+          <div class="w-metric">
+            <p class="w-n">5,200</p>
+            <p class="w-unit">participants<br>14 time zones</p>
+          </div>
+          <div class="w-main">
+            <p class="w-tag"><a href="https://union.build" target="_blank" rel="noopener">Union Labs</a><span class="sep"></span>2024</p>
+            <h3 class="w-title">Coordinating 5,200 strangers through a process that could not be redone</h3>
+            <p class="w-body">A zero-knowledge trusted setup ceremony required 5,200+ participants across 14 time zones to take specific actions in a precise sequence, collectively generating the cryptographic parameters the network&rsquo;s proofs depend on, a process that could not be restarted once begun. The hard part was never technical. It was getting thousands of independent people, in dozens of countries, through a process most had never seen, with zero tolerance for incomplete participation. We gamified the funnel, made enrollment self-service, and reached full completion with no manual intervention. No playbook existed, so we wrote one.</p>
+          </div>
+          <span class="w-chev" aria-hidden="true"><svg viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span>
+        </summary>
+      </details>
 
-      <article class="work-row r">
-        <div class="w-metric">
-          <p class="w-n">450K</p>
-          <p class="w-unit">users<br>72 hours</p>
-        </div>
-        <div>
-          <p class="w-tag"><a href="https://union.build" target="_blank" rel="noopener">Union Labs</a><span class="sep"></span>Quest Platform</p>
-          <h3 class="w-title">Zero to 450,000 users before the weekend ended</h3>
-          <p class="w-body">Designed and launched Union&rsquo;s in-house growth platform. 450,000 users onboarded in the first 72 hours through a funnel that cost nothing to acquire. The new testnet drove three times the transaction volume of its predecessor. It proved what I keep coming back to: distribution, built right, is itself a product feature.</p>
-        </div>
-      </article>
+      <details class="work-item" name="work-acc">
+        <summary>
+          <div class="w-metric">
+            <p class="w-n">450K</p>
+            <p class="w-unit">users<br>72 hours</p>
+          </div>
+          <div class="w-main">
+            <p class="w-tag"><a href="https://union.build" target="_blank" rel="noopener">Union Labs</a><span class="sep"></span>Quest Platform</p>
+            <h3 class="w-title">Zero to 450,000 users before the weekend ended</h3>
+            <p class="w-body">Designed and launched Union&rsquo;s in-house growth platform. 450,000 users onboarded in the first 72 hours through a funnel that cost nothing to acquire. The new testnet drove three times the transaction volume of its predecessor. It proved what I keep coming back to: distribution, built right, is itself a product feature.</p>
+          </div>
+          <span class="w-chev" aria-hidden="true"><svg viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span>
+        </summary>
+      </details>
 
-      <article class="work-row r">
-        <div class="w-metric">
-          <p class="w-n">53</p>
-          <p class="w-unit">campuses<br>90 days</p>
-        </div>
-        <div>
-          <p class="w-tag"><a href="https://shardeum.org" target="_blank" rel="noopener">Shardeum</a><span class="sep"></span>Proof of Community</p>
-          <h3 class="w-title">Opening a market of 20,000 people on a $30K budget</h3>
-          <p class="w-body">Shardeum needed presence in India with no regional team, no local recognition, and a lean budget. The plan was 53 campus activations across 90 consecutive days, run single-handed from start to finish. The result was not the tour. It was 20,000+ students reached, 25+ university communities launched, and a contributor network that kept growing after I left the country. The operating playbook became the template for Shardeum&rsquo;s global expansion.</p>
-        </div>
-      </article>
+      <details class="work-item" name="work-acc">
+        <summary>
+          <div class="w-metric">
+            <p class="w-n">28</p>
+            <p class="w-unit">states<br>90 days</p>
+          </div>
+          <div class="w-main">
+            <p class="w-tag"><a href="https://shardeum.org" target="_blank" rel="noopener">Shardeum</a><span class="sep"></span>Proof of Community</p>
+            <h3 class="w-title">Every state in India in 90 days, on a $10K budget</h3>
+            <p class="w-body">Shardeum needed presence in India with no regional team, no local recognition, and a lean budget. The plan was a 90-day tour reaching all 28 states, 53 activations in total, run single-handed from start to finish. Attendance was never the metric. Every stop ended with people creating wallets and deploying working dApps, which mattered to two partners for two different reasons: OKX counted the wallets, Shardeum counted the deployments, and one program served both scorecards. 20,000+ students and professionals reached, the curriculum adopted at 25+ universities, and a contributor network that kept growing after I left the country. The operating playbook became the template for Shardeum&rsquo;s global expansion.</p>
+          </div>
+          <span class="w-chev" aria-hidden="true"><svg viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span>
+        </summary>
+      </details>
 
-      <article class="work-row r">
-        <div class="w-metric">
-          <p class="w-n">800+</p>
-          <p class="w-unit">attendees<br>6-week brief</p>
-        </div>
-        <div>
-          <p class="w-tag"><a href="https://union.build" target="_blank" rel="noopener">Union Labs</a><span class="sep"></span><a href="https://devcon.org" target="_blank" rel="noopener">Devcon</a> Bangkok</p>
-          <h3 class="w-title">A flagship event from a blank brief in six weeks</h3>
-          <p class="w-body">Union needed a flagship presence at <a href="https://devcon.org" target="_blank" rel="noopener" class="ln">Devcon</a> Bangkok, one of the largest developer gatherings in the world. The brief arrived six weeks out. Venue, programming, speakers, AV, catering, and international travel logistics all ran single-threaded through me. 1,000+ registrations, 800+ attendees. The number matters less than what it takes to run a complex multi-stakeholder operation from nothing without dropping a detail.</p>
-        </div>
-      </article>
+      <details class="work-item" name="work-acc">
+        <summary>
+          <div class="w-metric">
+            <p class="w-n">800+</p>
+            <p class="w-unit">attendees<br>6-week brief</p>
+          </div>
+          <div class="w-main">
+            <p class="w-tag"><a href="https://union.build" target="_blank" rel="noopener">Union Labs</a><span class="sep"></span><a href="https://devcon.org" target="_blank" rel="noopener">Devcon</a> Bangkok</p>
+            <h3 class="w-title">A flagship event from a blank brief in six weeks</h3>
+            <p class="w-body">Union needed a flagship presence at <a href="https://devcon.org" target="_blank" rel="noopener" class="ln">Devcon</a> Bangkok, one of the largest developer gatherings in the world. The brief arrived six weeks out. Venue, programming, speakers, AV, catering, and international travel logistics all ran single-threaded through me. 1,000+ registrations, 800+ attendees. The number matters less than what it takes to run a complex multi-stakeholder operation from nothing without dropping a detail.</p>
+          </div>
+          <span class="w-chev" aria-hidden="true"><svg viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span>
+        </summary>
+      </details>
 
     </div>
   </div>
@@ -1237,30 +1345,31 @@ body.deep .fab{opacity:1;visibility:visible;transform:none}
 
 <!-- ============ APPROACH ============ -->
 <section id="approach" class="section">
+  <div class="sec-num" aria-hidden="true">02</div>
   <div class="wrap">
     <div class="sec-head r">
       <p class="label">How I Work</p>
-      <h2 class="sec-h">Three things I do better than most</h2>
-      <p class="sec-sub">Not learned from a playbook. Built by doing it four times over, in markets I had to figure out myself.</p>
+      <h2 class="sec-h">Three things I get brought in to fix</h2>
+      <p class="sec-sub">Not learned from a playbook. Built by doing it from zero at four companies, in markets I had to figure out myself.</p>
     </div>
     <div class="cap-grid">
       <article class="cap-card r">
         <p class="cap-i">01</p>
-        <h3 class="cap-title">The infrastructure behind adoption</h3>
-        <p class="cap-kicker">Community &amp; developer programs</p>
-        <p class="cap-body">I design the programs that turn early users into communities that keep growing when I&rsquo;m not in the room. Developer fellowships, accelerator cohorts, ambassador networks, contributor programs: built on a clear hypothesis, run against specific KPIs, handed off with a written playbook. If it can&rsquo;t run without me, it wasn&rsquo;t built right.</p>
+        <h3 class="cap-title">Distribution without the ad spend</h3>
+        <p class="cap-kicker">Growth &amp; partnerships</p>
+        <p class="cap-body">450,000 users in 72 hours. A newsletter at 51,000 subscribers and a 20% open rate. Partnerships with Aptos, Polygon, Arbitrum, OKX, and The Sandbox. Growth earned through community and partnerships outlasts paid acquisition and costs a fraction of it. I build the campaigns, the BD pipelines, the institutional and VC relationships, and the partner programs that generate that distribution.</p>
       </article>
       <article class="cap-card r">
         <p class="cap-i">02</p>
-        <h3 class="cap-title">Distribution without the ad spend</h3>
-        <p class="cap-kicker">Growth &amp; partnerships</p>
-        <p class="cap-body">450,000 users in 72 hours. A newsletter at 51,000 subscribers and a 20% open rate. Partnerships with Aptos, Polygon, Arbitrum, OKX, and The Sandbox. Growth earned through community and partnerships outlasts paid acquisition and costs a fraction of it. I build the campaigns, the BD pipelines, the CRMs, and the partner programs that generate that distribution.</p>
+        <h3 class="cap-title">Complex programs, single-threaded ownership</h3>
+        <p class="cap-kicker">Operations at scale</p>
+        <p class="cap-body">I&rsquo;ve coordinated a 5,200-person program across 14 time zones, covered all 28 states of India in 90 days on $10,000, and produced an 800-person flagship conference in six weeks. The specifics change every time. What doesn&rsquo;t: I own the whole thing, I make it work, and I build the system so the next one doesn&rsquo;t depend on me.</p>
       </article>
       <article class="cap-card r">
         <p class="cap-i">03</p>
-        <h3 class="cap-title">Complex programs, single-threaded ownership</h3>
-        <p class="cap-kicker">Operations at scale</p>
-        <p class="cap-body">I&rsquo;ve coordinated a 5,200-person program across 14 time zones, run 53 campus activations in 90 days on $30,000, and produced an 800-person flagship conference in six weeks. The specifics change every time. What doesn&rsquo;t: I own the whole thing, I make it work, and I build the system so the next one doesn&rsquo;t depend on me.</p>
+        <h3 class="cap-title">The infrastructure behind adoption</h3>
+        <p class="cap-kicker">Community &amp; developer programs</p>
+        <p class="cap-body">I design the programs that turn early users into communities that keep growing when I&rsquo;m not in the room. Developer fellowships, accelerator cohorts, ambassador networks, contributor programs: built on a clear hypothesis, run against specific KPIs, handed off with a written playbook. If it can&rsquo;t run without me, it wasn&rsquo;t built right.</p>
       </article>
     </div>
   </div>
@@ -1268,6 +1377,7 @@ body.deep .fab{opacity:1;visibility:visible;transform:none}
 
 <!-- ============ SKILLS ============ -->
 <section id="skills" class="section">
+  <div class="sec-num" aria-hidden="true">03</div>
   <div class="wrap">
     <div class="sec-head r">
       <p class="label">Capabilities</p>
@@ -1275,15 +1385,29 @@ body.deep .fab{opacity:1;visibility:visible;transform:none}
     </div>
     <div class="skills-grid r">
       <div class="sk-group">
-        <h3 class="sk-label">Community &amp; Developer Programs</h3>
+        <h3 class="sk-label">Growth &amp; GTM Strategy</h3>
         <div class="sk-pills">
-          <span class="sk-pill">Community Operations</span>
-          <span class="sk-pill">Developer Relations</span>
-          <span class="sk-pill">Ambassador Programs</span>
-          <span class="sk-pill">Fellowship Design</span>
-          <span class="sk-pill">Discord &amp; Telegram</span>
-          <span class="sk-pill">User Onboarding</span>
-          <span class="sk-pill">Community-Led Growth</span>
+          <span class="sk-pill">Go-to-Market Planning</span>
+          <span class="sk-pill">Product Launch</span>
+          <span class="sk-pill">Market Expansion</span>
+          <span class="sk-pill">User Acquisition</span>
+          <span class="sk-pill">Content Strategy</span>
+          <span class="sk-pill">Newsletter Operations</span>
+          <span class="sk-pill">PR &amp; Agency Management</span>
+        </div>
+      </div>
+      <div class="sk-group">
+        <h3 class="sk-label">Partnerships &amp; BD</h3>
+        <div class="sk-pills">
+          <span class="sk-pill">Institutional Outreach</span>
+          <span class="sk-pill">Investor &amp; VC Relations</span>
+          <span class="sk-pill">Deal Flow Infrastructure</span>
+          <span class="sk-pill">Partnership Development</span>
+          <span class="sk-pill">BD Pipeline &amp; CRM</span>
+          <span class="sk-pill">Founder Relations</span>
+          <span class="sk-pill">Ecosystem BD</span>
+          <span class="sk-pill">Stakeholder Management</span>
+          <span class="sk-pill">APAC &amp; MENA Markets</span>
         </div>
       </div>
       <div class="sk-group">
@@ -1300,29 +1424,14 @@ body.deep .fab{opacity:1;visibility:visible;transform:none}
         </div>
       </div>
       <div class="sk-group">
-        <h3 class="sk-label">Growth &amp; GTM Strategy</h3>
+        <h3 class="sk-label">Community &amp; Developer Programs</h3>
         <div class="sk-pills">
-          <span class="sk-pill">Go-to-Market Planning</span>
-          <span class="sk-pill">Product Launch</span>
-          <span class="sk-pill">Market Expansion</span>
-          <span class="sk-pill">User Acquisition</span>
-          <span class="sk-pill">Content Strategy</span>
-          <span class="sk-pill">Newsletter Operations</span>
-          <span class="sk-pill">PR &amp; Agency Management</span>
-        </div>
-      </div>
-      <div class="sk-group">
-        <h3 class="sk-label">Partnerships &amp; BD</h3>
-        <div class="sk-pills">
-          <span class="sk-pill">Partnership Development</span>
-          <span class="sk-pill">BD Pipeline &amp; CRM</span>
-          <span class="sk-pill">Institutional Outreach</span>
-          <span class="sk-pill">Ecosystem BD</span>
-          <span class="sk-pill">APAC &amp; MENA Markets</span>
-          <span class="sk-pill">Stakeholder Management</span>
-          <span class="sk-pill">Deal Flow Infrastructure</span>
-          <span class="sk-pill">Founder Relations</span>
-          <span class="sk-pill">Investor &amp; VC Relations</span>
+          <span class="sk-pill">Community-Led Growth</span>
+          <span class="sk-pill">Developer Relations</span>
+          <span class="sk-pill">Ambassador Programs</span>
+          <span class="sk-pill">Fellowship Design</span>
+          <span class="sk-pill">Community Operations</span>
+          <span class="sk-pill">User Onboarding</span>
         </div>
       </div>
       <div class="sk-group" style="grid-column:1/-1">
@@ -1330,14 +1439,10 @@ body.deep .fab{opacity:1;visibility:visible;transform:none}
         <div class="sk-pills">
           <span class="sk-pill">HubSpot</span>
           <span class="sk-pill">Salesforce</span>
-          <span class="sk-pill">Notion</span>
           <span class="sk-pill">Airtable</span>
+          <span class="sk-pill">Notion</span>
           <span class="sk-pill">Mailchimp</span>
           <span class="sk-pill">Google Analytics</span>
-          <span class="sk-pill">Discord</span>
-          <span class="sk-pill">Telegram</span>
-          <span class="sk-pill">Trello</span>
-          <span class="sk-pill">Slack</span>
         </div>
       </div>
     </div>
@@ -1346,6 +1451,7 @@ body.deep .fab{opacity:1;visibility:visible;transform:none}
 
 <!-- ============ ABOUT ============ -->
 <section id="about" class="section">
+  <div class="sec-num" aria-hidden="true">04</div>
   <div class="wrap">
     <div class="sec-head r">
       <p class="label">About</p>
@@ -1353,11 +1459,11 @@ body.deep .fab{opacity:1;visibility:visible;transform:none}
     </div>
     <div class="about-grid">
       <div class="about-copy">
-        <p class="r">Community, growth, and partnerships. That&rsquo;s where I work. My job is building the infrastructure that turns a technology company&rsquo;s first hundred users into something self-sustaining: developer programs, ambassador networks, growth campaigns, strategic partnerships. I&rsquo;ve done it at four companies from scratch, as the person responsible for all of it at each one.</p>
-        <p class="r">The track record, company by company. At <strong>Union Labs</strong>, 450,000 users in 72 hours through a zero-cost campaign, a 9-week accelerator with 50 competing teams, and partnerships with Aptos, Polygon, and Movement Labs. At <strong>Shardeum</strong>, 140+ contributors running independently across 25+ countries, built from zero using programs I designed. At <strong>OG Club</strong>, a community I helped grow to 29,000 members before it was acquired, with 15+ founders funded. At <strong>Commudle</strong>, 10,000 users in six months on a $0 marketing budget, and a newsletter that reached 51,000 developers at a 20% open rate.</p>
+        <p class="r">Growth, partnerships, and community. That&rsquo;s where I work. My job is building the infrastructure that turns a technology company&rsquo;s first hundred users into something self-sustaining: developer programs, ambassador networks, growth campaigns, strategic partnerships. I&rsquo;ve done it at four companies from scratch, as the person responsible for all of it at each one.</p>
+        <p class="r">The track record, company by company. At <strong>Union Labs</strong>, 450,000 users in 72 hours through a zero-cost campaign, a 9-week accelerator with 50 competing teams, and partnerships with Aptos, Polygon, and Movement Labs. At <strong>Shardeum</strong>, 140+ contributors running independently across 25+ countries, built from zero using programs I designed. At <strong>OG Club</strong>, a community I helped grow to 29,000 members before it was acquired, with 15+ founders funded. At <strong>Commudle</strong>, 10,000 users in six months on a $0 marketing budget, and a newsletter that reached 51,000 developers at a 20% open rate. At <strong>Hashed Emergent</strong>, a venture capital firm, I supported portfolio GTM and co-authored an industry report with Nasscom, India&rsquo;s national tech trade body, reaching 50,000+ readers.</p>
         <p class="r">The problem is always a version of the same thing. A company has something worth caring about, but not enough people care yet. The community doesn&rsquo;t exist. The developer programs were never designed. Growth depends entirely on paid acquisition. I build the alternatives: programs that generate loyalty, partnerships that generate distribution, community infrastructure that keeps growing without budget.</p>
-        <p class="r">What separates this from a typical community or growth hire is scope. Most people specialize in one channel. I&rsquo;ve owned community, growth, partnerships, developer relations, and program design at the same time, at every company I&rsquo;ve worked at. That breadth changes what&rsquo;s achievable, because the growth motion and the community motion reinforce each other when the same person owns both.</p>
-        <p class="r">Since 2020, that includes training 20,000+ students and professionals at organizations like TCS and Infosys and at IITs, IIMs, and IIITs. Currently building <a href="https://aicabal.xyz" target="_blank" rel="noopener" class="ln">AI Cabal</a>, a practitioner-led AI community for builders across India. Looking for community, ecosystem, growth, or business development leadership at AI infrastructure, developer tool, or technical platform companies, where that infrastructure hasn&rsquo;t been built yet.</p>
+        <p class="r">What separates this from a typical community or growth hire is scope. Most people specialize in one channel. I&rsquo;ve owned community, growth, partnerships, developer relations, and program design at the same time, not in sequence. That breadth changes what&rsquo;s achievable, because the growth motion and the community motion reinforce each other when the same person owns both.</p>
+        <p class="r">Since 2020, that includes training 20,000+ students and professionals at organizations like TCS and Infosys and at IITs, IIMs, and IIITs. Looking for community, ecosystem, growth, or business development leadership at AI infrastructure, developer tool, or technical platform companies, where that infrastructure hasn&rsquo;t been built yet.</p>
       </div>
       <aside class="about-aside r" aria-label="Career at a glance">
         <div class="portrait">
@@ -1368,7 +1474,7 @@ body.deep .fab{opacity:1;visibility:visible;transform:none}
           <div class="a-stat"><span class="a-label">Students &amp; professionals taught</span><span class="a-val">20K+</span></div>
           <div class="a-stat"><span class="a-label">In-person activations</span><span class="a-val">800+</span></div>
           <div class="a-stat"><span class="a-label">Virtual activations</span><span class="a-val">200+</span></div>
-          <div class="a-stat"><span class="a-label">University partnerships</span><span class="a-val">45+</span></div>
+          <div class="a-stat"><span class="a-label">University curriculum partnerships</span><span class="a-val">45+</span></div>
           <div class="a-stat"><span class="a-label">Years in the work</span><span class="a-val">6</span></div>
         </div>
       </aside>
@@ -1376,40 +1482,17 @@ body.deep .fab{opacity:1;visibility:visible;transform:none}
   </div>
 </section>
 
-<!-- ============ QUOTE ============ -->
-<section id="qb" aria-label="Point of view">
-  <blockquote class="qb-inner">
-    <span class="qb-mark" aria-hidden="true"></span>
-    <p class="qb-q">Scale is rarely a growth problem.<br>It&rsquo;s usually an alignment problem.</p>
-    <footer class="qb-by">Loveneesh Dhir</footer>
-  </blockquote>
-</section>
-
 <!-- ============ EXPERIENCE ============ -->
 <section id="exp" class="section">
+  <div class="sec-num" aria-hidden="true">05</div>
   <div class="wrap">
     <div class="sec-head r">
       <p class="label">Experience</p>
       <h2 class="sec-h">Where I&rsquo;ve built</h2>
-      <p class="sec-sub">Nine roles, built market by market across four continents. Always from zero, always with a measurable outcome.</p>
+      <p class="sec-sub">Eight roles, built market by market across APAC, MENA, and LATAM. Always from zero, always with a measurable outcome.</p>
     </div>
     <div class="exp-list" id="expList">
 
-      <article class="exp-row r">
-        <div class="ex-meta">
-          <p class="ex-date"><span class="ex-now">Jul 2026 &ndash; Present</span></p>
-          <p class="ex-co"><a href="https://aicabal.xyz" target="_blank" rel="noopener">AI Cabal</a></p>
-          <p class="ex-co-sub">Pan-India AI builder community, currently in build: practitioner network, newsletter, and roadshow series.</p>
-        </div>
-        <div class="ex-body">
-          <h3 class="ex-role">Founder</h3>
-          <p class="ex-context"><strong>Challenge:</strong> India has a growing base of AI builders and no practitioner-led community at real density. Most AI events stay surface-level; most newsletters are reposts. <strong>Action:</strong> Building AI Cabal from scratch, designing the practitioner network, newsletter, and in-person roadshow program together rather than bolting them on later. <strong>Status:</strong> Founded July 2026. Early build, nothing shipped publicly yet.</p>
-          <ul class="ex-bul">
-            <li>Designing The Cabal Dispatch, a newsletter for AI practitioners, and a planned 5-city roadshow across Delhi, Bengaluru, Hyderabad, Chennai, and Mumbai.</li>
-            <li>Building the community and content infrastructure from zero, applying the playbook that produced 450K users and 140+ contributors at prior companies, now in the AI space.</li>
-          </ul>
-        </div>
-      </article>
       <article class="exp-row r">
         <div class="ex-meta">
           <p class="ex-date">Aug 2024 &ndash; Jul 2026</p>
@@ -1454,10 +1537,10 @@ body.deep .fab{opacity:1;visibility:visible;transform:none}
             <div class="ex-num"><p class="ex-num-n">400+</p><p class="ex-num-l">Activations</p></div>
           </div>
           <ul class="ex-bul">
-            <li>Built the Super Shardian contributor program: 140+ contributors across 25+ countries, running independently using playbooks I wrote.</li>
             <li>Closed partnerships with <a href="https://okx.com/web3" target="_blank" rel="noopener" class="ln">OKX Wallet</a>, <a href="https://www.sandbox.game" target="_blank" rel="noopener" class="ln">The Sandbox</a>, <a href="https://biconomy.io" target="_blank" rel="noopener" class="ln">Biconomy</a>, <a href="https://push.org" target="_blank" rel="noopener" class="ln">Push Protocol</a>, and <a href="https://www.jump.trade" target="_blank" rel="noopener" class="ln">jump.trade</a>, running both outbound sourcing and inbound partner requests; sourced 120+ qualified ecosystem leads.</li>
+            <li>Ran 400+ community activations across the region, measured in wallets created and dApps deployed rather than attendance, anchored by PoC Backpacking India: a 90-day tour across all 28 states, 53 activations on $10,000, reaching 20,000+ students and professionals, with the program adopted as blockchain curriculum at 25+ universities.</li>
+            <li>Built the Super Shardian contributor program: 140+ contributors across 25+ countries, running independently using playbooks I wrote.</li>
             <li>Designed three replicable community programs from scratch: <a href="https://github.com/shardeum/Shardeum-ProofOfCommunity-Workshops" target="_blank" rel="noopener" class="ln">Proof of Community</a>, <a href="https://docs.google.com/document/d/13ofz3ovMvbLdejWqiKlVrTP5AAunJahPnGkI8bh2t4Q/edit" target="_blank" rel="noopener" class="ln">Shardeum is Borderless</a> (UGC), and Shardeum Leagues.</li>
-            <li>Ran 400+ community activations across the region, tied directly to wallet creation and developer activation and anchored by PoC Backpacking India: 53 campus activations in 90 days on $30,000, reaching 20,000+ students and professionals, with the program adopted as blockchain curriculum at 25+ universities.</li>
             <li>Produced Shardeum&rsquo;s flagship conference at <a href="https://indiablockchainweek.com" target="_blank" rel="noopener" class="ln">India Blockchain Week</a>: 500+ attendees, multiple speaker tracks, owned solo from brief to teardown.</li>
           </ul>
         </div>
@@ -1517,8 +1600,8 @@ body.deep .fab{opacity:1;visibility:visible;transform:none}
           <h3 class="ex-role">Developer Relations Manager</h3>
           <p class="ex-context"><strong>Challenge:</strong> Build a developer community and contributor pipeline for a new open-source collaboration platform with no existing audience. <strong>Action:</strong> Led developer relations through technical content, structured onboarding, and partner integrations, tracking contributors from first touch to first commit. <strong>Result:</strong> A developer community with an active contributor funnel and a direct product feedback loop into engineering.</p>
           <ul class="ex-bul">
-            <li>Built the developer community from zero through technical content, contribution programs, and structured onboarding that shortened time to first contribution.</li>
-            <li>Owned <a href="https://blog.gitopia.com" target="_blank" rel="noopener" class="ln">technical blogs</a> and <a href="https://www.youtube.com/channel/UCsAVjkAUnT5krP_e8HyFRHg" target="_blank" rel="noopener" class="ln">educational content</a> across all channels, and managed partner integrations for new platform partnerships, closing the loop between community feedback and the product roadmap.</li>
+            <li>Managed partner integrations for new platform partnerships, working directly with product and engineering to close the loop between partner and community feedback and the roadmap.</li>
+            <li>Built the developer community from zero through technical content, contribution programs, and structured onboarding that shortened time to first contribution, and owned <a href="https://blog.gitopia.com" target="_blank" rel="noopener" class="ln">technical blogs</a> and <a href="https://www.youtube.com/channel/UCsAVjkAUnT5krP_e8HyFRHg" target="_blank" rel="noopener" class="ln">educational content</a> across all channels.</li>
           </ul>
         </div>
       </article>
@@ -1533,14 +1616,9 @@ body.deep .fab{opacity:1;visibility:visible;transform:none}
           <p class="ex-context"><strong>Challenge:</strong> Grow registrations for TalentSprint Women Engineers, a Google-backed program, within a short, program-scoped engagement. <strong>Action:</strong> Built an ambassador program from scratch and partnered directly with university placement cells to drive sign-ups. <strong>Result:</strong> Registrations grew 3&times; year over year.</p>
           <div class="ex-nums">
             <div class="ex-num"><p class="ex-num-n">3&times;</p><p class="ex-num-l">Registration growth</p></div>
-            <div class="ex-num"><p class="ex-num-n">120+</p><p class="ex-num-l">University placement cells</p></div>
-            <div class="ex-num"><p class="ex-num-n">80+</p><p class="ex-num-l">Ambassadors built</p></div>
+            <div class="ex-num"><p class="ex-num-n">85+</p><p class="ex-num-l">University placement cells</p></div>
+            <div class="ex-num"><p class="ex-num-n">60+</p><p class="ex-num-l">Ambassadors built</p></div>
           </div>
-          <ul class="ex-bul">
-            <li>Scaled TalentSprint Women Engineers, a Google-backed program, to 3&times; its prior year&rsquo;s registration growth.</li>
-            <li>Built an 80+ member ambassador program across India to drive program awareness and sign-ups.</li>
-            <li>Partnered directly with Training and Placement Cells at 120+ universities to secure registrations at scale.</li>
-          </ul>
         </div>
       </article>
       <article class="exp-row r" data-more>
@@ -1598,6 +1676,7 @@ body.deep .fab{opacity:1;visibility:visible;transform:none}
 
 <!-- ============ VOLUNTEERING ============ -->
 <section id="vol" class="section">
+  <div class="sec-num" aria-hidden="true">06</div>
   <div class="wrap">
     <div class="sec-head r">
       <p class="label">Giving Back</p>
@@ -1629,16 +1708,8 @@ body.deep .fab{opacity:1;visibility:visible;transform:none}
         <p class="vol-note">Mentored student teams across MLH&rsquo;s Summer League hackathon series.</p>
       </article>
     </div>
-  </div>
-</section>
 
-<!-- ============ EDUCATION ============ -->
-<section id="edu" class="section">
-  <div class="wrap">
-    <div class="sec-head r">
-      <p class="label">Education</p>
-      <h2 class="sec-h">Where the thinking started</h2>
-    </div>
+    <p class="label sub-label r">Education</p>
     <div class="edu-grid">
       <article class="vol-card r">
         <p class="vol-org">MBA</p>
@@ -1656,6 +1727,7 @@ body.deep .fab{opacity:1;visibility:visible;transform:none}
 
 <!-- ============ REFERENCES ============ -->
 <section id="praise" class="section">
+  <div class="sec-num" aria-hidden="true">07</div>
   <div class="wrap">
     <div class="sec-head r">
       <p class="label">References</p>
@@ -1723,7 +1795,7 @@ body.deep .fab{opacity:1;visibility:visible;transform:none}
     <h2 class="ct-h r">What are you building?</h2>
     <p class="ct-sub r">If you&rsquo;re building something ambitious and the community, growth, or ecosystem motion isn&rsquo;t where it needs to be, that&rsquo;s the conversation worth having.</p>
     <div class="ct-btns r">
-      <a href="mailto:dhirloveneesh@gmail.com?subject=Role%20conversation" class="ct-primary">dhirloveneesh@gmail.com <span class="ar" aria-hidden="true">&rarr;</span></a>
+      <a href="mailto:dhirloveneesh@gmail.com?subject=Role%20conversation" class="ct-primary">Email <span class="ar" aria-hidden="true">&rarr;</span></a>
       <a href="https://www.linkedin.com/in/loveneeshdhir/" target="_blank" rel="noopener" class="ct-secondary">LinkedIn <span aria-hidden="true">&nearr;</span></a>
     </div>
     <p class="ct-note r">Based in Delhi, India (GMT+5:30). I usually reply within a day.</p>
@@ -1737,7 +1809,7 @@ body.deep .fab{opacity:1;visibility:visible;transform:none}
   <div class="ft-grid">
     <div class="ft-brand-col">
       <p class="ft-brand">Loveneesh Dhir</p>
-      <p class="ft-tag">Community, growth, and partnerships infrastructure for technology companies. Six years, four companies, 30+ countries.</p>
+      <p class="ft-tag">Growth, partnerships, and ecosystem infrastructure for technology companies. Six years, four companies built from zero, 30+ countries.</p>
     </div>
     <div>
       <h2 class="ft-h">Navigate</h2>
@@ -1777,6 +1849,45 @@ body.deep .fab{opacity:1;visibility:visible;transform:none}
   var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   var doc = document.documentElement;
 
+  /* ---- theme toggle ---- */
+  /* data-theme is already set (dark by default, or a saved choice) by the
+     inline script in <head>, which runs before first paint. This just wires
+     the visible button up to flip it and persist the choice. */
+  (function(){
+    var btn = document.getElementById('themeToggle');
+    var colorMeta = document.getElementById('themeColor');
+    if (!btn) return;
+    var COLORS = { dark: '#14110F', light: '#FFFFFF' };
+    function label(theme){
+      btn.setAttribute('aria-label', theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme');
+    }
+    function apply(theme){
+      /* suppress transitions for the one frame the switch actually happens,
+         see the .theme-switching CSS comment for why this exists */
+      doc.classList.add('theme-switching');
+      doc.setAttribute('data-theme', theme);
+      if (colorMeta) colorMeta.setAttribute('content', COLORS[theme] || COLORS.dark);
+      label(theme);
+      try { localStorage.setItem('theme', theme); } catch(e){}
+      /* setTimeout, not requestAnimationFrame: rAF can be throttled or
+         never fire in a backgrounded/inactive tab (verified: a double-rAF
+         version left this class stuck indefinitely in that exact scenario,
+         permanently killing every transition on the page). A timer fires
+         regardless of render state. Transitions are fully suppressed while
+         this class is present, so the 60ms just needs to outlast one style
+         recalc, not any transition duration, then normal hover/interaction
+         transitions resume as soon as it's removed. */
+      setTimeout(function(){ doc.classList.remove('theme-switching'); }, 60);
+    }
+    label(doc.getAttribute('data-theme') === 'light' ? 'light' : 'dark');
+    btn.addEventListener('click', function(){
+      apply(doc.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+    });
+  })();
+
+  /* Selected Work is native <details>/<summary> now (see CSS); no JS needed
+     for the open/close behavior itself, the browser handles it. */
+
   /* ---- scroll: progress bar, nav state, fab ---- */
   var bar = document.getElementById('progress');
   var ticking = false;
@@ -1801,7 +1912,8 @@ body.deep .fab{opacity:1;visibility:visible;transform:none}
   var menu = document.getElementById('menu');
   /* everything the open menu covers is made inert, so keyboard and screen-reader
      focus cannot fall through to the page behind the overlay */
-  /* NB: body > footer, because a second <footer> lives inside the pull-quote's blockquote */
+  /* body > footer, scoped deliberately: keeps matching only the page footer
+     if a nested <footer> is ever reintroduced inside main content */
   var behind = [document.getElementById('main'), document.querySelector('body > footer'),
                 document.querySelector('.fab'), document.querySelector('.skip')].filter(Boolean);
 
