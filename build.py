@@ -109,6 +109,15 @@ TPL = r'''<!DOCTYPE html>
   ]
 }
 </script>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-EL3ZN9SBV5"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-EL3ZN9SBV5');
+</script>
 <style>
 /* ============ FONTS ============ */
 @font-face{
