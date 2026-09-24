@@ -96,7 +96,8 @@ TPL = r'''<!DOCTYPE html>
   "name":"Loveneesh Dhir",
   "url":"https://loveneeshdhir.com/",
   "image":"https://loveneeshdhir.com/og-image.jpg",
-  "jobTitle":"Head of Growth, Ecosystem & Partnerships",
+  "jobTitle":"Founding GTM",
+  "worksFor":{"@type":"Organization","name":"AgentTrail"},
   "description":"Builds community infrastructure, developer programs, and strategic partnerships for technology companies.",
   "email":"mailto:dhirloveneesh@gmail.com",
   "address":{"@type":"PostalAddress","addressLocality":"Delhi","addressCountry":"IN"},
@@ -812,6 +813,11 @@ body.menu-open #menu{
   letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);
   margin-bottom:.8rem;
 }
+.ex-now{
+  display:inline-flex;align-items:center;gap:.35rem;
+  color:var(--rust-2);font-weight:700;
+}
+.ex-now::before{content:'';width:5px;height:5px;border-radius:50%;background:#18A957}
 .ex-co{
   font-size:var(--t-lg);font-weight:700;font-stretch:100%;
   letter-spacing:-.018em;color:var(--ink);margin-bottom:.35rem;line-height:1.3;
@@ -1278,7 +1284,7 @@ body.deep .fab{
     <div class="hero-logos">
       <p class="hero-logos-l">Built ecosystems at</p>
       <p class="hero-logos-r">
-        <span>Union Labs</span><span>Shardeum</span><span>Hashed Emergent</span><span>OG Club</span><span>Commudle</span><span>Scaler</span>
+        <span>AgentTrail</span><span>Union Labs</span><span>Shardeum</span><span>Hashed Emergent</span><span>OG Club</span><span>Commudle</span><span>Scaler</span>
       </p>
     </div>
   </div>
@@ -1552,9 +1558,21 @@ body.deep .fab{
     <div class="sec-head r">
       <p class="label">Experience</p>
       <h2 class="sec-h">Where I&rsquo;ve built</h2>
-      <p class="sec-sub">Eight roles, built market by market across APAC, MENA, and LATAM. Always from zero, always with a measurable outcome.</p>
+      <p class="sec-sub">Nine roles, built market by market across APAC, MENA, and LATAM. Always from zero, always with a measurable outcome.</p>
     </div>
     <div class="exp-list" id="expList">
+
+      <article class="exp-row r">
+        <div class="ex-meta">
+          <p class="ex-date">Sep 2026 &ndash; <span class="ex-now">Present</span></p>
+          <p class="ex-co"><a href="https://agenttrail.sh" target="_blank" rel="noopener">AgentTrail</a></p>
+          <p class="ex-co-sub">Observability, governance, and real-time enforcement for AI coding agents.</p>
+        </div>
+        <div class="ex-body">
+          <h3 class="ex-role">Founding GTM</h3>
+          <p class="ex-context"><strong>Challenge:</strong> Take an AI infrastructure product to market in a category that is still being defined, where the buyer is only now working out how to govern coding agents. <strong>Action:</strong> Joined as the founding GTM hire, owning positioning, pipeline, and early adoption from zero.</p>
+        </div>
+      </article>
 
       <article class="exp-row r">
         <div class="ex-meta">
