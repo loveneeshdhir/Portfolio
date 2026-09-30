@@ -3,3 +3,7 @@
 
 # Artifact-preview build only; the deployed site is index.html
 standalone.html
+
+# Local-only image sources; derivatives are committed, originals must not deploy
+PFP.png
+headshot-original.jpg
