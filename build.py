@@ -86,12 +86,13 @@ TPL = r'''<!DOCTYPE html>
     if (saved === 'light' || saved === 'dark') t = saved;
   } catch(e){}
   document.documentElement.setAttribute('data-theme', t);
+  if (/[?&]view=recruiter(&|$)/.test(location.search)) document.documentElement.setAttribute('data-view', 'recruiter');
   var m = document.getElementById('themeColor');
   if (m) m.setAttribute('content', t === 'light' ? '#FFFFFF' : '#14110F');
 })();
 </script>
 <meta property="og:title" content="Loveneesh Dhir | Growth, Partnerships &amp; Ecosystem">
-<meta property="og:description" content="Six years, four companies taken from zero. 450,000 users in 72 hours. 140+ contributors across 25+ countries. 400+ ecosystem and partner relationships including Aptos, Polygon, and OKX.">
+<meta property="og:description" content="Six years taking companies from zero. 450,000 users in 72 hours. 140+ contributors across 25+ countries. 400+ ecosystem and partner relationships including Aptos, Polygon, and OKX.">
 <meta property="og:type" content="profile">
 <link rel="canonical" href="https://loveneeshdhir.com/">
 <meta property="og:url" content="https://loveneeshdhir.com/">
@@ -309,7 +310,7 @@ body{
 body.menu-open{overflow:hidden}
 img{display:block;max-width:100%}
 a{color:inherit;text-decoration:none}
-button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;-webkit-appearance:none;appearance:none}
 ul{list-style:none}
 h1,h2,h3,h4{font-weight:700;line-height:1.15;color:var(--ink);text-wrap:balance}
 ::selection{background:var(--rust);color:var(--sel-ink)}
@@ -960,6 +961,7 @@ body.menu-open #menu{
 ;text-wrap:pretty}
 
 /* ============ EDUCATION ============ */
+h2.sub-label{line-height:inherit}
 .sub-label{display:flex;align-items:center;gap:.7rem;margin-top:var(--s7);padding-top:var(--s6);margin-bottom:var(--s5);border-top:1px solid var(--line)}
 .sub-label::after{content:'';height:1px;flex:1;max-width:60px;background:linear-gradient(to right,var(--rust),transparent)}
 .edu-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem}
@@ -1049,6 +1051,25 @@ body.menu-open #menu{
 .ct-secondary:hover{border-color:var(--band-ink-2);background:rgba(255,255,255,.05)}
 .ct-note{font-size:var(--t-sm);color:var(--band-ink-2);text-wrap:pretty}
 
+/* Light theme: stats strip and contact turn light; only the footer keeps the dark band. */
+:root[data-theme="light"] #stats,:root[data-theme="light"] #contact{
+  --band:#FFFFFF;--band-2:var(--paper-2);
+  --band-ink:var(--ink);--band-ink-2:var(--ink-3);
+  --band-line:var(--line);--band-accent:var(--rust);
+}
+@media (prefers-color-scheme:light){
+  :root:not([data-theme]) #stats,:root:not([data-theme]) #contact{
+    --band:#FFFFFF;--band-2:var(--paper-2);
+    --band-ink:var(--ink);--band-ink-2:var(--ink-3);
+    --band-line:var(--line);--band-accent:var(--rust);
+  }
+}
+:root[data-theme="light"] #stats{border-bottom:1px solid var(--line)}
+:root[data-theme="light"] .stat-item:hover{background:var(--paper-2)}
+:root[data-theme="light"] .ct-primary{color:#FFFFFF}
+:root[data-theme="light"] .ct-primary:hover{box-shadow:0 10px 30px rgba(192,69,26,.22)}
+:root[data-theme="light"] .ct-secondary:hover{background:var(--paper-2)}
+
 /* ============ FOOTER ============ */
 footer{background:var(--band);border-top:1px solid var(--band-line);padding:var(--s8) max(var(--gutter),env(safe-area-inset-right)) var(--s6) max(var(--gutter),env(safe-area-inset-left))}
 .ft-grid{
@@ -1105,7 +1126,7 @@ body.deep .fab{
 
 @media (prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
-  .r,.hero-name,.hero-title,.hero-thesis,.hero-proof,.hero-btns,.hero-logos{
+  .r,.hero-name,.hero-title,.hero-thesis,.hero-proof,.hero-btns,.hero-logos,.rv-note{
     animation:none!important;opacity:1!important;transform:none!important;transition:none!important;
   }
   .dot{animation:none!important}
@@ -1116,13 +1137,15 @@ body.deep .fab{
 @media (max-width:1180px){
   .about-grid{grid-template-columns:minmax(0,1fr) 260px;gap:var(--s8)}
 }
-@media (max-width:1080px){
+@media (max-width:1120px){
   .nav-links{display:none}
   .nav-toggle{display:flex}
   .nav-ghost{display:none}
   .nav-cta{min-height:44px}
-  /* match the 44px touch target the hamburger and CTA already use */
+  /* match the 44px touch target the hamburger already uses */
   .theme-toggle{width:44px;height:44px}
+}
+@media (max-width:1080px){
   .skills-grid{grid-template-columns:repeat(2,1fr)}
   .cap-grid{grid-template-columns:1fr}
   .cap-card{padding:var(--s6) var(--s5)}
@@ -1187,6 +1210,84 @@ body.deep .fab{
 }
 
 /* ============ PRINT / RESUME ============ */
+
+/* ============ RECRUITER VIEW ============
+   ?view=recruiter in the URL (read pre-paint in <head>) sets data-view on <html>.
+   Screen-only on purpose: Cmd+P always prints the full layout. */
+.nav-links .rv-only,#menu .rv-only{display:none}
+.nav-links .rv-toggle{position:relative;display:block;margin-left:.9rem;padding:.55rem .8rem;font-size:var(--t-sm);font-weight:500;color:var(--ink-3);border-radius:var(--r-sm);white-space:nowrap;text-align:center;transition:color .2s,background .2s}
+.nav-links .rv-toggle::before{content:'';position:absolute;left:-.5rem;top:50%;width:1px;height:1.1em;background:var(--line-2);transform:translateY(-50%)}
+/* reserves the wider label's width so the link row does not shift when the label swaps */
+.nav-links .rv-toggle::after{content:'Recruiter view';display:block;height:0;overflow:hidden;visibility:hidden}
+.nav-links .rv-toggle:hover{color:var(--ink);background:var(--paper-3)}
+:root[data-view="recruiter"] .rv-toggle:not(.rv-inline){color:var(--rust);border-color:var(--rust)}
+:root[data-view="recruiter"] .nav-links .rv-toggle::before{background:var(--rust)}
+.rv-note{display:none}
+.rv-inline{background:none;border:0;padding:0;font:inherit;font-weight:700;color:var(--rust);cursor:pointer;border-bottom:1px solid color-mix(in srgb,var(--rust) 40%,transparent)}
+.rv-inline:hover{border-bottom-color:var(--rust)}
+@media screen{
+  :root[data-view="recruiter"] #stats,
+  :root[data-view="recruiter"] #gallery,
+  :root[data-view="recruiter"] #work,
+  :root[data-view="recruiter"] #approach,
+  :root[data-view="recruiter"] #about,
+  :root[data-view="recruiter"] #vol .sec-head,
+  :root[data-view="recruiter"] #vol .vol-grid,
+  :root[data-view="recruiter"] .sec-num,
+  :root[data-view="recruiter"] .m-i,
+  :root[data-view="recruiter"] .exp-more,
+  :root[data-view="recruiter"] .hero-thesis,
+  :root[data-view="recruiter"] .hero-proof,
+  :root[data-view="recruiter"] .hero-logos,
+  :root[data-view="recruiter"] .hero-r,
+  :root[data-view="recruiter"] a[href="#work"],
+  :root[data-view="recruiter"] a[href="#approach"],
+  :root[data-view="recruiter"] a[href="#about"],
+  :root[data-view="recruiter"] #menu a[href="#work"],
+  :root[data-view="recruiter"] #menu a[href="#approach"],
+  :root[data-view="recruiter"] #menu a[href="#about"]{display:none}
+  :root[data-view="recruiter"] .exp-row[hidden]{display:grid!important}
+  :root[data-view="recruiter"] .nav-links .rv-only{display:block}
+  :root[data-view="recruiter"] #menu .rv-only{display:list-item}
+  /* hide the whole row, not just the link, or an empty bordered line is left behind */
+  :root[data-view="recruiter"] #menu li:has(a[href="#work"]),
+  :root[data-view="recruiter"] #menu li:has(a[href="#approach"]),
+  :root[data-view="recruiter"] #menu li:has(a[href="#about"]){display:none}
+  /* menu follows the recruiter page order: experience, skills, education, references, contact */
+  :root[data-view="recruiter"] #menu li:has(a[href="#exp"]){order:1}
+  :root[data-view="recruiter"] #menu li:has(a[href="#skills"]){order:2}
+  :root[data-view="recruiter"] #menu li:has(a[href="#edu"]){order:3}
+  :root[data-view="recruiter"] #menu li:has(a[href="#praise"]){order:4}
+  :root[data-view="recruiter"] #menu li:has(a[href="#contact"]){order:5}
+  :root[data-view="recruiter"] .hero-btns{margin-bottom:0}
+  :root[data-view="recruiter"] .hero-btns .btn{flex:0 0 auto;min-height:38px;padding:.5rem 1rem;font-size:var(--t-sm)}
+  :root[data-view="recruiter"] .rv-note{animation:rise .7s .29s var(--ease) backwards;display:block;margin:var(--s4) 0 var(--s5);max-width:52ch;font-size:var(--t-sm);color:var(--ink-3);line-height:1.6;text-wrap:pretty}
+  :root[data-view="recruiter"] #hero{min-height:0;grid-template-columns:1fr}
+  :root[data-view="recruiter"] .hero-l{padding-top:calc(var(--nav-h) + var(--s7));padding-bottom:var(--s7)}
+  :root[data-view="recruiter"] #hero{border-bottom:0}
+  :root[data-view="recruiter"] #exp{padding-top:var(--s9)}
+  :root[data-view="recruiter"] #vol .sub-label{margin-top:0;padding-top:0;border-top:0}
+  /* recruiter order: experience, then skills, then education / references / contact */
+  :root[data-view="recruiter"] main{display:flex;flex-direction:column}
+  :root[data-view="recruiter"] #skills{order:1}
+  :root[data-view="recruiter"] #vol,:root[data-view="recruiter"] #praise,:root[data-view="recruiter"] #contact{order:2}
+}
+@media screen and (min-width:821px){
+  /* recruiter hero as a compact header: name and title left, note and resume right */
+  :root[data-view="recruiter"] .hero-l{display:grid;grid-template-columns:max-content minmax(0,1fr) minmax(0,25rem);grid-template-areas:"name name note" "title btns note";column-gap:var(--s8);row-gap:var(--s4);align-items:end;padding-top:calc(var(--nav-h) + var(--s8));padding-bottom:var(--s8)}
+  :root[data-view="recruiter"] .hero-name{grid-area:name;font-size:clamp(2.75rem,5vw,4.25rem)}
+  :root[data-view="recruiter"] .hero-name br{display:none}
+  :root[data-view="recruiter"] .hero-title{grid-area:title;margin:0;align-self:center}
+  :root[data-view="recruiter"] .rv-note{grid-area:note;margin:0;align-self:end}
+  :root[data-view="recruiter"] .hero-btns{grid-area:btns;margin:0;align-self:center;justify-self:start}
+}
+@media screen and (min-width:821px) and (max-width:1100px){
+  /* not enough width for three columns: note drops to its own row */
+  :root[data-view="recruiter"] .hero-l{grid-template-columns:max-content minmax(0,1fr);grid-template-areas:"name name" "title btns" "note note"}
+  :root[data-view="recruiter"] .rv-note{max-width:52ch}
+}
+
+
 @media (max-width:480px){
   /* nav row (avatar + name + CTA + toggle + hamburger) exceeds a phone width; the h1 repeats the name just below */
   .nav-id span{display:none}
@@ -1295,7 +1396,11 @@ body.deep .fab{
     <a href="#approach">Approach</a>
     <a href="#about">About</a>
     <a href="#exp">Experience</a>
+    <a href="#skills" class="rv-only">Skills</a>
+    <a href="#edu" class="rv-only">Education</a>
+    <a href="#praise" class="rv-only">References</a>
     <a href="#contact">Contact</a>
+    <button class="rv-toggle" type="button">Recruiter view</button>
   </nav>
   <div class="nav-act">
     <a class="nav-ghost" href="https://drive.google.com/drive/folders/1i2fP6Q9tuIfIX8euCvJw0R93bzSoEtzG?usp=sharing" target="_blank" rel="noopener">R&eacute;sum&eacute; <span aria-hidden="true">&nearr;</span></a>
@@ -1318,6 +1423,7 @@ body.deep .fab{
       <li><a class="m-link" href="#skills"><span class="m-i">03</span>Skills</a></li>
       <li><a class="m-link" href="#about"><span class="m-i">04</span>About</a></li>
       <li><a class="m-link" href="#exp"><span class="m-i">05</span>Experience</a></li>
+      <li class="rv-only"><a class="m-link" href="#edu">Education</a></li>
       <li><a class="m-link" href="#praise"><span class="m-i">06</span>References</a></li>
       <li><a class="m-link" href="#contact"><span class="m-i">07</span>Contact</a></li>
     </ul>
@@ -1325,9 +1431,11 @@ body.deep .fab{
   <div class="menu-foot">
     <a href="mailto:dhirloveneesh@gmail.com?subject=Role%20conversation" class="btn btn-primary">Get in touch <span class="ar" aria-hidden="true">&rarr;</span></a>
     <a class="btn btn-secondary" href="https://drive.google.com/drive/folders/1i2fP6Q9tuIfIX8euCvJw0R93bzSoEtzG?usp=sharing" target="_blank" rel="noopener">Download r&eacute;sum&eacute; <span aria-hidden="true">&nearr;</span></a>
+    <button class="btn btn-secondary rv-toggle" type="button">Recruiter view</button>
   </div>
 </div>
 
+<div id="rvLive" class="sr-only" aria-live="polite"></div>
 <main id="main" tabindex="-1">
 
 <!-- ============ HERO ============ -->
@@ -1335,8 +1443,9 @@ body.deep .fab{
   <div class="hero-l">
     <h1 class="hero-name">Loveneesh <br>Dhir</h1>
     <p class="hero-title"><span>Growth, Partnerships &amp; Ecosystem</span></p>
+    <p class="rv-note">Recruiter view: experience, capabilities, references, and contact. <button type="button" class="rv-toggle rv-inline">Show the full site</button></p>
     <p class="hero-thesis">Most companies have the product figured out. The growth motion, the partnerships, the developer programs: <strong>that part usually lags.</strong> That&rsquo;s what I build.</p>
-    <p class="hero-proof">Six years. Four companies taken from zero to scale. <b>450,000 users in 72 hours</b> with no paid spend. <b>140+ contributors</b> running independently across <b>25+ countries</b>. <b>400+ ecosystem and partner relationships</b>, including Aptos, Polygon, and OKX.</p>
+    <p class="hero-proof">Six years taking companies from zero to scale. <b>450,000 users in 72 hours</b> with no paid spend. <b>140+ contributors</b> running independently across <b>25+ countries</b>. <b>400+ ecosystem and partner relationships</b>, including Aptos, Polygon, and OKX.</p>
     <div class="hero-btns">
       <a href="#work" class="btn btn-primary">See the work <span class="ar" aria-hidden="true">&rarr;</span></a>
       <a class="btn btn-secondary" href="https://drive.google.com/drive/folders/1i2fP6Q9tuIfIX8euCvJw0R93bzSoEtzG?usp=sharing" target="_blank" rel="noopener">Download r&eacute;sum&eacute; <span aria-hidden="true">&nearr;</span></a>
@@ -1483,7 +1592,7 @@ body.deep .fab{
     <div class="sec-head r">
       <p class="label">How I Work</p>
       <h2 class="sec-h">Three things I get brought in to fix</h2>
-      <p class="sec-sub">Not learned from a playbook. Built by doing it from zero at four companies, in markets I had to figure out myself.</p>
+      <p class="sec-sub">Not learned from a playbook. Built by doing it from zero, company after company, in markets I had to figure out myself.</p>
     </div>
     <div class="cap-grid">
       <article class="cap-card r">
@@ -1592,7 +1701,7 @@ body.deep .fab{
     </div>
     <div class="about-grid">
       <div class="about-copy">
-        <p class="r">Growth, partnerships, and community. That&rsquo;s where I work. My job is building the infrastructure that turns a technology company&rsquo;s first hundred users into something self-sustaining: developer programs, ambassador networks, growth campaigns, strategic partnerships. I&rsquo;ve done it at four companies from scratch, as the person responsible for all of it at each one.</p>
+        <p class="r">Growth, partnerships, and community. That&rsquo;s where I work. My job is building the infrastructure that turns a technology company&rsquo;s first hundred users into something self-sustaining: developer programs, ambassador networks, growth campaigns, strategic partnerships. I&rsquo;ve done it from scratch at company after company, as the person responsible for all of it at each one.</p>
         <p class="r">The track record, company by company. At <strong>Union Labs</strong>, 450,000 users in 72 hours through a zero-cost campaign, a 9-week accelerator with 50 competing teams, and partnerships with Aptos, Polygon, and Movement Labs. At <strong>Shardeum</strong>, 140+ contributors running independently across 25+ countries, built from zero using programs I designed. At <strong>OG Club</strong>, a community I helped grow to 29,000 members before it was acquired, with 15+ founders funded. At <strong>Commudle</strong>, 10,000 users in six months on a $0 marketing budget, and a newsletter that reached 51,000 developers at a 20% open rate. At <strong>Hashed Emergent</strong>, a venture capital firm, I supported portfolio GTM and co-authored an industry report with Nasscom, India&rsquo;s national tech trade body, reaching 50,000+ readers.</p>
         <p class="r">The problem is always a version of the same thing. A company has something worth caring about, but not enough people care yet. The community doesn&rsquo;t exist. The developer programs were never designed. Growth depends entirely on paid acquisition. I build the alternatives: programs that generate loyalty, partnerships that generate distribution, community infrastructure that keeps growing without budget.</p>
         <p class="r">What separates this from a typical community or growth hire is scope. Most people specialize in one channel. I&rsquo;ve owned community, growth, partnerships, developer relations, and program design at the same time, not in sequence. That breadth changes what&rsquo;s achievable, because the growth motion and the community motion reinforce each other when the same person owns both.</p>
@@ -1764,6 +1873,11 @@ body.deep .fab{
             <div class="ex-num"><p class="ex-num-n">85+</p><p class="ex-num-l">University placement cells</p></div>
             <div class="ex-num"><p class="ex-num-n">60+</p><p class="ex-num-l">Ambassadors built</p></div>
           </div>
+          <ul class="ex-bul">
+            <li>Scaled TalentSprint Women Engineers, a Google-backed program, to 3&times; its prior year&rsquo;s registrations.</li>
+            <li>Built a 60+ member ambassador program across India to drive program awareness and sign-ups.</li>
+            <li>Partnered directly with Training and Placement Cells at 85+ universities to secure registrations at scale.</li>
+          </ul>
         </div>
       </article>
       <article class="exp-row r" data-more>
@@ -1854,7 +1968,7 @@ body.deep .fab{
       </article>
     </div>
 
-    <p class="label sub-label r">Education</p>
+    <h2 class="label sub-label r" id="edu">Education</h2>
     <div class="edu-grid">
       <article class="vol-card r">
         <p class="vol-org">MBA</p>
@@ -1954,7 +2068,7 @@ body.deep .fab{
   <div class="ft-grid">
     <div class="ft-brand-col">
       <p class="ft-brand">Loveneesh Dhir</p>
-      <p class="ft-tag">Growth, partnerships, and ecosystem infrastructure for technology companies. Six years, four companies built from zero, 30+ countries.</p>
+      <p class="ft-tag">Growth, partnerships, and ecosystem infrastructure for technology companies. Six years, multiple companies built from zero, 30+ countries.</p>
     </div>
     <div>
       <h2 class="ft-h">Navigate</h2>
@@ -2098,8 +2212,8 @@ body.deep .fab{
   addEventListener('keydown', function(e){
     if (e.key === 'Escape' && document.body.classList.contains('menu-open')) setMenu(false, true);
   });
-  var mq = matchMedia('(min-width: 1081px)');
-  mq.addEventListener('change', function(e){ if (e.matches) setMenu(false, false); });
+  var mq = matchMedia('(max-width: 1120px)');
+  mq.addEventListener('change', function(e){ if (!e.matches) setMenu(false, false); });
 
   /* ---- experience progressive disclosure ---- */
   var more = document.getElementById('expMore');
@@ -2119,6 +2233,52 @@ body.deep .fab{
       if (open) moreWrap.scrollIntoView({block:'center', behavior: reduce ? 'auto' : 'smooth'});
     });
   }
+
+  /* ---- recruiter view ---- */
+  var rvButtons = Array.prototype.slice.call(document.querySelectorAll('.rv-toggle'));
+  var rvLive = document.getElementById('rvLive');
+  function rvIsOn(){ return doc.getAttribute('data-view') === 'recruiter'; }
+  function rvPaint(on){
+    rvButtons.forEach(function(b){
+      if (b.classList.contains('rv-inline')) return;
+      b.textContent = on ? 'Full site' : 'Recruiter view';
+    });
+  }
+  function rvPlace(on){
+    var sk = document.getElementById('skills'), anchor = document.getElementById(on ? 'exp' : 'approach');
+    if (sk && anchor) anchor.insertAdjacentElement('afterend', sk);
+  }
+  function rvSet(on, src){
+    var fromMenu = document.body.classList.contains('menu-open');
+    if (on) doc.setAttribute('data-view', 'recruiter'); else doc.removeAttribute('data-view');
+    rvPlace(on);
+    try {
+      var u = new URL(location.href);
+      if (on) u.searchParams.set('view', 'recruiter'); else u.searchParams.delete('view');
+      history.replaceState(null, '', u.pathname + u.search + u.hash);
+    } catch(e){}
+    rvPaint(on);
+    if (on) document.querySelectorAll('.exp-row').forEach(function(r){ r.classList.add('in'); });
+    if (rvLive) rvLive.textContent = on ? 'Recruiter view on: experience, capabilities, references, and contact.' : 'Full site restored.';
+    /* keep keyboard focus somewhere visible: closing the menu returns it to the hamburger,
+       and the hero's inline button disappears when the view switches off */
+    if (fromMenu && typeof setMenu === 'function') setMenu(false, true);
+    else if (src && !src.getClientRects().length){
+      var alt = rvButtons.filter(function(b){ return b !== src && !b.closest('#menu') && b.getClientRects().length; })[0];
+      var hb = document.getElementById('navToggle');
+      if (alt) alt.focus({ preventScroll: true });
+      else if (hb && hb.getClientRects().length) hb.focus({ preventScroll: true });
+      else { var mn = document.getElementById('main'); if (mn) mn.focus({ preventScroll: true }); }
+    }
+    window.scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    if (typeof gtag === 'function') gtag('event', 'recruiter_view', { view_state: on ? 'on' : 'off' });
+  }
+  /* print the full-site order even from recruiter view (the DOM move is screen-only intent) */
+  addEventListener('beforeprint', function(){ if (rvIsOn()) rvPlace(false); });
+  addEventListener('afterprint', function(){ if (rvIsOn()) rvPlace(true); });
+  rvPaint(rvIsOn());
+  if (rvIsOn()){ rvPlace(true); document.querySelectorAll('.exp-row').forEach(function(r){ r.classList.add('in'); }); }
+  rvButtons.forEach(function(b){ b.addEventListener('click', function(){ rvSet(!rvIsOn(), b); }); });
 
   /* ---- scroll reveal ---- */
   if (reduce){
@@ -2169,9 +2329,11 @@ body.deep .fab{
 
   function syncNav(){
     var line = window.scrollY + window.innerHeight * 0.35;
-    var active = null;
+    var active = null, best = -Infinity;
     targets.forEach(function(t){
-      if (t.el.getBoundingClientRect().top + window.scrollY <= line) active = t.link;
+      if (!t.el.getClientRects().length || !t.link.getClientRects().length) return;
+      var top = t.el.getBoundingClientRect().top + window.scrollY;
+      if (top <= line && top > best){ best = top; active = t.link; }
     });
     /* pin the last link once the page is bottomed out */
     if (window.innerHeight + window.scrollY >= doc.scrollHeight - 4) active = targets[targets.length - 1].link;
